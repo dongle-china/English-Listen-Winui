@@ -95,8 +95,8 @@ namespace English_Listen_WinUI.Services
             catch { }
 
             return (
-                "https://jtdwfuijnoxiglomkdaq.supabase.co",
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0ZHdmdWlqbm94aWdsb21rZGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjI0MzMsImV4cCI6MjA5MzAzODQzM30.aZ2At0eAAwVbPwecsKzO5jYC2AOarXDyKoWpyZaL330"
+                "https://gpthbupoyolrowazdexm.supabase.co",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwdGhidXBveW9scm93YXpkZXhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNzE3MDgsImV4cCI6MjEwOTc0NzcwOH0.Sq2Lexefz2b35_yoOqENfslyfZu2UDizrIxOjl75q1c"
             );
         }
     }

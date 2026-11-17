@@ -12,6 +12,11 @@ namespace English_Listen_WinUI.Services
     {
         private readonly SupabaseService _supabase = SupabaseService.Instance;
 
+        /// <summary>登录状态变化通知（登录/登出/会话恢复），UI 层订阅后刷新头像等状态。</summary>
+        public static event Action? LoginStateChanged;
+
+        public static void RaiseLoginStateChanged() => LoginStateChanged?.Invoke();
+
         public User? CurrentUser => _supabase.CurrentUser;
         public bool IsLoggedIn => _supabase.IsLoggedIn;
 
@@ -38,6 +43,7 @@ namespace English_Listen_WinUI.Services
                 if (response?.User != null)
                 {
                     Debug.WriteLine("[Auth] SignUp success: " + response.User.Id);
+                    if (IsLoggedIn) RaiseLoginStateChanged();
                     return new AuthResult { Success = true, User = response.User };
                 }
 
@@ -65,6 +71,7 @@ namespace English_Listen_WinUI.Services
                 if (response?.User != null)
                 {
                     Debug.WriteLine("[Auth] SignIn success: " + response.User.Id);
+                    RaiseLoginStateChanged();
                     return new AuthResult { Success = true, User = response.User };
                 }
 
@@ -87,6 +94,7 @@ namespace English_Listen_WinUI.Services
             try
             {
                 await _supabase.Client.Auth.SignOut();
+                RaiseLoginStateChanged();
                 Debug.WriteLine("[Auth] SignOut success");
             }
             catch (Exception ex)

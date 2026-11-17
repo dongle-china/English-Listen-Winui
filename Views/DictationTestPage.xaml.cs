@@ -9,6 +9,7 @@ using Windows.Storage;
 using Windows.System;
 using English_Listen_WinUI.Models;
 using English_Listen_WinUI.Services;
+using English_Listen_WinUI.ViewModels;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -407,6 +408,9 @@ namespace English_Listen_WinUI.Views
             {
                 if (ProgressText != null)
                     ProgressText.Text = $"第 {currentIndex + 1} / {totalWords} 个";
+
+                // 训练阶段状态上报到窗口标题栏
+                MainWindow.SetTitleStatus($"听写 · 第 {currentIndex + 1} / {totalWords} 个");
 
                 if (_isPaperMode)
                 {
@@ -1263,6 +1267,20 @@ namespace English_Listen_WinUI.Views
 
                 testHistory.Add(testResult);
                 await settingsService.SaveTestHistoryAsync(currentUser, testHistory);
+
+                // 同步到 ViewModel，统计页即时可见
+                var vm = App.SharedViewModel;
+                if (vm != null)
+                {
+                    vm.TestHistory = testHistory;
+                    vm.TestHistoryViewModels.Clear();
+                    foreach (var r in testHistory)
+                        vm.TestHistoryViewModels.Add(new TestResultViewModel { Result = r });
+                }
+
+                // 已登录时自动上传到云端
+                if (Services.SupabaseService.Instance.IsLoggedIn)
+                    _ = new Services.TestResultService().UploadResultAsync(testResult);
             }
             catch (Exception ex)
             {

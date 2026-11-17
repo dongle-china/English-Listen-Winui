@@ -66,15 +66,21 @@ namespace English_Listen_WinUI.Views
             var result = await _authService.SignInAsync(email, password);
             if (result.Success)
             {
-                await App.SharedViewModel?.Settings?.LoadSettingsAsync()!;
-                if (App.SharedViewModel != null)
+                // 统一登录同步管线：云端配置 + 离线记录迁移 + 词库 + 学习进度
+                MainWindow.ShowPersistentNotification("正在从云端拉取数据...", "云同步");
+                try
                 {
-                    App.SharedViewModel.Settings.Settings.CurrentUser = email;
-                    _ = App.SharedViewModel.Settings.SaveSettingsAsync();
+                    await LoginFlow.CompleteLoginAsync(App.SharedViewModel!, email,
+                        new Progress<string>(m => MainWindow.UpdateNotification(m)));
+                    MainWindow.HideNotification();
+                    Debug.WriteLine("[CloudSync] Login sync completed.");
+                }
+                catch (Exception syncEx)
+                {
+                    MainWindow.HideNotification();
+                    MainWindow.ShowNotification($"登录成功，但云端同步失败: {syncEx.Message}");
                 }
                 await UpdateStatusAsync();
-                // 登录后自动拉取云端数据
-                await AutoSyncFromCloudAsync();
             }
             else
             {
@@ -95,38 +101,6 @@ namespace English_Listen_WinUI.Views
         private void GoToRegister_Click(object sender, RoutedEventArgs e)
         {
             MainWindow.GoToPage(typeof(RegisterPage));
-        }
-
-        // ── Auto Sync ───────────────────────────────────────────
-
-        private async Task AutoSyncFromCloudAsync()
-        {
-            try
-            {
-                MainWindow.ShowPersistentNotification("正在从云端拉取数据...", "云同步");
-                var sync = new CloudSyncService();
-
-                // 1. 下载云端 settings.json + 翻译文件 + 分组 → 写磁盘
-                await sync.DownloadSettingsFileAsync();
-                await sync.DownloadTranslationFileAsync();
-                await sync.DownloadWordGroupsFileAsync();
-                // 2. 上传本地词库文件
-                var wordBankService = new WordBankService();
-                await wordBankService.AutoUploadLocalWordBanksAsync();
-
-                // 3. 从磁盘重载 settings + 词库列表
-                await App.SharedViewModel!.Settings.LoadSettingsAsync();
-                App.SharedViewModel.StudyPlan = App.SharedViewModel.Settings.Settings.StudyPlan;
-                await App.SharedViewModel!.LoadWordListFilesAsync();
-
-                MainWindow.HideNotification();
-                Debug.WriteLine("[CloudSync] Auto-sync completed (file-level).");
-            }
-            catch (Exception ex)
-            {
-                MainWindow.HideNotification();
-                Debug.WriteLine($"[CloudSync] Auto-sync failed: {ex.Message}");
-            }
         }
 
         // ── Manual Cloud Sync Buttons ───────────────────────────

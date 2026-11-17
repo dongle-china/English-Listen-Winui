@@ -222,8 +222,9 @@ namespace English_Listen_WinUI.Services
             var history = new List<TestResult>();
             try
             {
-                if (string.IsNullOrEmpty(username)) return history;
-                
+                // 离线模式：未登录时回退到默认离线用户目录，数据仍本地留存
+                if (string.IsNullOrWhiteSpace(username)) username = LoginFlow.OfflineUser;
+
                 var testHistoryPath = GetUserTestHistoryPath(username);
                 if (File.Exists(testHistoryPath))
                 {
@@ -250,8 +251,9 @@ namespace English_Listen_WinUI.Services
             await _fileLock.WaitAsync();
             try
             {
-                if (string.IsNullOrEmpty(username)) return;
-                
+                // 离线模式：未登录时回退到默认离线用户目录，数据仍本地留存
+                if (string.IsNullOrWhiteSpace(username)) username = LoginFlow.OfflineUser;
+
                 var userDir = GetUserDataPath(username);
                 if (!Directory.Exists(userDir))
                 {

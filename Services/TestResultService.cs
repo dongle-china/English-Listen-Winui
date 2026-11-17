@@ -104,6 +104,35 @@ namespace English_Listen_WinUI.Services
             }
         }
 
+        /// <summary>把本地存在、云端缺失的测试记录全部上传（按时间戳去重），返回上传条数。</summary>
+        public async Task<int> UploadLocalAsync(MainViewModel viewModel)
+        {
+            try
+            {
+                var user = _supabase.CurrentUser;
+                if (user == null) return 0;
+
+                var cloud = await DownloadAllAsync();
+                var cloudTimestamps = new HashSet<DateTime>(cloud.Select(r => r.Timestamp));
+
+                var toUpload = (viewModel.TestHistory ?? new List<TestResult>())
+                    .Where(r => !cloudTimestamps.Contains(r.Timestamp))
+                    .ToList();
+
+                foreach (var result in toUpload)
+                    await UploadResultAsync(result);
+
+                if (toUpload.Count > 0)
+                    Debug.WriteLine($"[TestResult] Uploaded {toUpload.Count} local-only results");
+                return toUpload.Count;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[TestResult] UploadLocal error: {ex.Message}");
+                return 0;
+            }
+        }
+
         private static TestResult ToTestResult(CloudTestResult c)
         {
             var words = new List<WordTranslationPair>();

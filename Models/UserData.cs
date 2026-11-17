@@ -16,9 +16,20 @@ namespace English_Listen_WinUI.Models
         public List<WordTranslationPair>? Words { get; set; }
 
         /// <summary>
-        /// 记录类型："dictation"=听写, "learning"=学习。null/空 兼容旧记录（视为听写）
+        /// 记录类型："dictation"=听写, "learning"=学习, "sentence"=句子精听。null/空 兼容旧记录（视为听写）
         /// </summary>
         public string? RecordType { get; set; }
+
+        // ===== 句子精听扩展（RecordType == "sentence" 时有效）。可空属性保持 test_history.json 向后兼容 =====
+
+        /// <summary>素材 ID（MediaSource.Id）</summary>
+        public string? MediaSourceId { get; set; }
+
+        /// <summary>句子切句序号</summary>
+        public int? SentenceIndex { get; set; }
+
+        /// <summary>逐词校验明细</summary>
+        public List<SentenceWordAttempt>? SentenceWords { get; set; }
     }
 
     /// <summary>
@@ -59,6 +70,9 @@ namespace English_Listen_WinUI.Models
         public int WindowsTtsRate { get; set; } = 0;
         public string? BaiduTranslateApiMode { get; set; } = "default";
         public string? BaiduTranslateApiKey { get; set; }
+
+        /// <summary>Whisper ggml 模型文件路径（本地转写，路径由用户在素材库页选择）</summary>
+        public string? WhisperModelPath { get; set; }
 
         public StudyPlanSettings StudyPlan { get; set; } = new();
     }

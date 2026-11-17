@@ -14,11 +14,43 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <!-- InfoBar notification -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 自定义标题栏：应用图标 + 应用名 + 页面/训练阶段状态 + 用户头像 -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48" Canvas.ZIndex="200">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0" Spacing="12">
+                <Image Source="ms-appx:///Assets/Square44x44Logo.targetsize-24_altform-unplated.png"
+                       Width="20" Height="20" VerticalAlignment="Center"
+                       AutomationProperties.Name="应用图标" />
+                <TextBlock x:Name="AppTitleText" Text="English Listen"
+                           Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock x:Name="PageStatusText" Text=""
+                           Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           AutomationProperties.Name="当前页面状态" />
+            </StackPanel>
+
+            <Button x:Name="AvatarButton"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Margin="0,0,152,0"
+                    Width="36" Height="36" CornerRadius="18"
+                    Background="Transparent" BorderThickness="0" Padding="0"
+                    AutomationProperties.Name="账户">
+                <FontIcon Glyph="&#xE77B;" FontSize="18" />
+            </Button>
+        </Grid>
+
+        <!-- InfoBar notification（位于标题栏下方，不遮挡） -->
         <InfoBar x:Name="ToastInfoBar"
+                 Grid.Row="1"
                  HorizontalAlignment="Right"
                  VerticalAlignment="Top"
-                 Margin="0,10,20,0"
+                 Margin="0,8,20,0"
                  Canvas.ZIndex="100"
                  IsOpen="False"
                  IsIconVisible="True"
@@ -29,6 +61,7 @@
                  PointerExited="ToastInfoBar_PointerExited" />
 
         <NavigationView x:Name="MainNavigationView"
+                        Grid.Row="1"
                         PaneDisplayMode="Left"
                         IsSettingsVisible="True"
                         IsBackButtonVisible="Auto"
@@ -39,10 +72,15 @@
             <!-- Menu Items -->
             <NavigationView.MenuItems>
                 <NavigationViewItem Icon="Home" Content="主页" Tag="HomePage" />
-                <NavigationViewItem Icon="Library" Content="查看单词" Tag="WordsPage" />
-                <NavigationViewItem Icon="Page2" Content="背单词" Tag="MemorizePage" />
+                <NavigationViewItem Icon="Video" Content="素材库" Tag="MediaLibraryPage" />
+                <NavigationViewItem Icon="Play" Content="训练" SelectsOnInvoked="False">
+                    <NavigationViewItem.MenuItems>
+                        <NavigationViewItem Icon="Library" Content="查看单词" Tag="WordsPage" />
+                        <NavigationViewItem Icon="Page2" Content="背单词" Tag="MemorizePage" />
+                    </NavigationViewItem.MenuItems>
+                </NavigationViewItem>
+                <NavigationViewItem Icon="Map" Content="统计" Tag="ProgressPage" />
                 <NavigationViewItem Icon="People" Content="用户管理" Tag="UserPage" />
-                <NavigationViewItem Icon="Map" Content="学习进度" Tag="ProgressPage" />
             </NavigationView.MenuItems>
 
             <!-- Footer Menu Items -->

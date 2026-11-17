@@ -762,6 +762,10 @@ namespace English_Listen_WinUI.Views
                 testHistory.Add(record);
                 await settingsService.SaveTestHistoryAsync(currentUser, testHistory);
 
+                // 已登录时自动上传到云端
+                if (Services.SupabaseService.Instance.IsLoggedIn)
+                    _ = new Services.TestResultService().UploadResultAsync(record);
+
                 // 同步到 ViewModel
                 _viewModel.TestHistory = testHistory;
                 _viewModel.TestHistoryViewModels.Clear();

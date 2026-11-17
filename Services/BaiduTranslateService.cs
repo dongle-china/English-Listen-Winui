@@ -100,15 +100,16 @@ namespace English_Listen_WinUI.Services
 
             // Priority 2: Legacy plaintext config file
             var legacyConfig = LoadConfigFromFile();
-            if (legacyConfig != null)
+            var legacyBaidu = legacyConfig?.BaiduTranslate;
+            if (legacyBaidu != null)
             {
                 SecretStorageService.SaveSecret(new BaiduSecretConfig
                 {
-                    AppId = legacyConfig.BaiduTranslate.AppId,
-                    ApiKey = legacyConfig.BaiduTranslate.ApiKey
+                    AppId = legacyBaidu.AppId,
+                    ApiKey = legacyBaidu.ApiKey
                 });
-                _appId = legacyConfig.BaiduTranslate.AppId;
-                _apiKey = legacyConfig.BaiduTranslate.ApiKey;
+                _appId = legacyBaidu.AppId;
+                _apiKey = legacyBaidu.ApiKey;
                 Debug.WriteLine($"从旧版文件迁移配置: AppId={_appId}");
                 return;
             }
@@ -477,18 +478,6 @@ namespace English_Listen_WinUI.Services
 
             return results;
         }
-    }
-
-    public class SecretConfig
-    {
-        [JsonPropertyName("BaiduTranslate")] public required BaiduTranslateConfig BaiduTranslate { get; set; }
-    }
-
-    public class BaiduTranslateConfig
-    {
-        [JsonPropertyName("AppId")] public required string AppId { get; set; }
-
-        [JsonPropertyName("ApiKey")] public required string ApiKey { get; set; }
     }
 
     public class BaiduTranslateResponse

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-      <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+      <TargetFramework>net11.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>English_Listen_WinUI</RootNamespace>
       <Version>1.1.26.0</Version>
@@ -88,9 +88,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
-      <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0"/>
-      <PackageReference Include="System.Windows.Extensions" Version="10.0.0"/>
-      <PackageReference Include="System.Speech" Version="10.0.0"/>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Supabase" Version="8.11.0" />
+      <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
+      <PackageReference Include="System.Windows.Extensions" Version="10.0.0" />
+      <PackageReference Include="System.Speech" Version="10.0.0" />
+      <PackageReference Include="Whisper.net" Version="1.9.1" />
+      <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -126,6 +131,10 @@
         <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
         <PackageCertificateKeyFile>devcert.pfx</PackageCertificateKeyFile>
         <PackageCertificatePassword>password</PackageCertificatePassword>
+        <!-- devcert.pfx 对应证书的指纹（已导入 CurrentUser\My，私钥在）。
+             WinAppSdkGenerateAppxManifest 任务不带密码参数、无法导入带密码的 pfx，
+             会误报 APPX0105/0107；显式给出指纹后它直接从证书存储验证，不再碰 pfx。 -->
+        <PackageCertificateThumbprint>2358F30ACD846DDA367F35BDBADAFD6CC9A01E7F</PackageCertificateThumbprint>
         <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
         <AppxBundle>Always</AppxBundle>
   </PropertyGroup>
@@ -137,4 +146,36 @@
         <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
         <AppxBundle>Always</AppxBundle>
   </PropertyGroup>
+
+  <!--
+    PRI249 修复：makepri 的 folder indexer（filenameAsQualifier）解析 WinAppSDK 1.8 运行时文件名
+    WindowsAppSdk.AppxDeploymentExtensions.Desktop-EventLog-Instrumentation.dll 时，把
+    "Desktop-EventLog-Instrumentation" 段当限定符，在 exclude 规则评估之前就发出 PRI249 警告
+    （已实证 exclude 拦不住，且排除该文件会把它从打包映射移除）。
+    此目标在官方 _CreateMainPackageFileMap（Microsoft.Windows.SDK.BuildTools.MSIX.Pri.targets）之前，
+    用与官方任务相同的 makepri 命令直接生成 filemap 产物（输出与官方任务字节级一致），并把输出重定向到
+    日志文件；随后官方目标因 Outputs 已是最新而跳过，PRI249 不再进入构建输出。
+    命令行可在 $(IntermediateOutputPath)filemap.makepri.log 查看完整输出。
+    shortcut: 复制了 MSIX buildtools 1.7.x 的 makepri 调用；升级 buildtools/WinAppSDK 后需复核命令行。
+  -->
+  <Target Name="_CreateMainPackageFileMap_SuppressPri249"
+          BeforeTargets="_CreateMainPackageFileMap"
+          Inputs="$(MSBuildAllProjects);@(_AppxBundleMainPackageMapInputs)"
+          Outputs="$(AppxBundleMainPackageFileMapIntermediatePath)">
+    <Exec Command="&quot;$(MakePriExeFullPath)&quot; new -ProjectRoot &quot;$(AppxLayoutDir).&quot; -ConfigXml &quot;$(AppxBundlePriConfigXmlForMainPackageFileMapFileName)&quot; -OutputFile &quot;$(AppxBundleMainPackageFileMapIntermediatePriPath)&quot; -IndexName &quot;$(ProjectPriIndexName)&quot; -MappingFile AppX -Verbose -Overwrite $(AppxGenerateProjectPriFileAdditionalMakepriExeParameters) &gt; &quot;$(IntermediateOutputPath)filemap.makepri.log&quot; 2&gt;&amp;1" />
+  </Target>
+
+  <!--
+    mspbdbcmf 警告抑制：mspdbcmf.exe（符号包工具，随 VC++ UWP 工具安装）本机不存在时，
+    _EnsurePdbCmfExeFullPath（Packaging.targets 3015 行）会因 PDBPayload 非空发警告。
+    PDBPayload 只喂给符号包生成（_GenerateAppxSymbolPackage，本机因缺工具本来就跑不了），
+    .pdb 早在 _CalculateInputsForGenerateAppxPackageRecipe（4543 行）就被剔除出正式包，
+    在警告评估前清空它没有任何功能损失。
+    shortcut: 今后若要生成符号包，删除本目标并安装 VC++ UWP 工具（含 mspbdbcmf.exe）。
+  -->
+  <Target Name="_SuppressMspbdbcmfWarning" BeforeTargets="_EnsurePdbCmfExeFullPath">
+    <ItemGroup>
+      <PDBPayload Remove="@(PDBPayload)" />
+    </ItemGroup>
+  </Target>
 </Project>

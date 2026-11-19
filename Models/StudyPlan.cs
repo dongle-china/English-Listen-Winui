@@ -49,6 +49,11 @@ namespace English_Listen_WinUI.Models
         public List<string> LearnedWords { get; set; } = new();
 
         /// <summary>
+        /// 已背会的单词列表（用户手动标记，用于"听写已背单词"）
+        /// </summary>
+        public List<string> MemorizedWords { get; set; } = new();
+
+        /// <summary>
         /// 上次学习日期
         /// </summary>
         public DateTime LastStudyDate { get; set; } = DateTime.MinValue;

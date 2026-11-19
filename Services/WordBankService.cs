@@ -5,16 +5,20 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using English_Listen_WinUI.Models;
 
 namespace English_Listen_WinUI.Services
 {
+    /// <summary>
+    /// 词库云端同步：全部词库存为单个 KV（/api/data/word_banks，List&lt;WordBank&gt; JSON，内容 inline）。
+    /// 按文件名去重，ContentHash 判断是否需要下载。
+    // shortcut: 词库总量超 10MB 时 PUT 会被服务端拒绝（值上限），届时需拆分为逐库键
+    /// </summary>
     public class WordBankService
     {
-        private readonly SupabaseService _supabase = SupabaseService.Instance;
-
-        private const string BUCKET_NAME = "wordbanks";
+        private const string Key = "word_banks";
 
         private static string ComputeHash(string content)
         {
@@ -28,73 +32,21 @@ namespace English_Listen_WinUI.Services
             return ComputeHash(content);
         }
 
-        public async Task<WordBank?> UploadAsync(string filePath, string? description = null, Action<float>? onProgress = null)
+        private static int CountWords(string content)
         {
-            try
-            {
-                var user = _supabase.CurrentUser;
-                if (user == null) throw new UnauthorizedAccessException("请先登录");
-
-                var userId = Guid.Parse(user.Id!);
-                var fileName = Path.GetFileName(filePath);
-                var extension = Path.GetExtension(filePath);
-                var storagePath = $"{user.Id}/{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{extension}";
-                var fileBytes = await File.ReadAllBytesAsync(filePath);
-
-                await EnsureBucketExistsAsync();
-
-                var bucket = _supabase.Client.Storage.From(BUCKET_NAME);
-
-                Debug.WriteLine($"[WordBank] Uploading '{filePath}' -> '{storagePath}' ({fileBytes.Length} bytes)");
-
-                await bucket.Upload(fileBytes, storagePath, new Supabase.Storage.FileOptions { ContentType = "text/plain" });
-
-                Debug.WriteLine("[WordBank] Storage upload OK: " + storagePath);
-
-                var content = await File.ReadAllTextAsync(filePath);
-                var wordCount = CountWords(content);
-                var hash = ComputeHash(content);
-
-                var wordBank = new WordBank
-                {
-                    UserId = userId,
-                    Name = fileName,
-                    FileUrl = storagePath,
-                    FileSize = fileBytes.Length,
-                    WordCount = wordCount,
-                    UploadedAt = DateTime.UtcNow,
-                    Description = description ?? string.Empty,
-                    ContentHash = hash
-                };
-
-                var result = await _supabase.Client.From<WordBank>()
-                    .Insert(wordBank);
-
-                var inserted = result.Models?.FirstOrDefault();
-                Debug.WriteLine("[WordBank] Upload success: " + fileName + ", " + wordCount + " words, DB id=" + inserted?.Id);
-                return inserted;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("[WordBank] Upload error: " + ex);
-                return null;
-            }
+            return content.Split(new[] { '\r', '\n', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
         }
 
         public async Task<List<WordBank>> GetUserWordBanksAsync()
         {
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return new List<WordBank>();
+                if (!WebApiService.Instance.IsLoggedIn) return new List<WordBank>();
 
-                var userId = Guid.Parse(user.Id!);
-                var result = await _supabase.Client.From<WordBank>()
-                    .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                    .Order(w => w.UploadedAt, Supabase.Postgrest.Constants.Ordering.Descending)
-                    .Get();
+                var json = await WebApiService.Instance.GetJsonAsync(Key);
+                if (string.IsNullOrEmpty(json)) return new List<WordBank>();
 
-                return result.Models ?? new List<WordBank>();
+                return JsonSerializer.Deserialize<List<WordBank>>(json) ?? new List<WordBank>();
             }
             catch (Exception ex)
             {
@@ -103,125 +55,26 @@ namespace English_Listen_WinUI.Services
             }
         }
 
-        public async Task<bool> DeleteAsync(Guid wordBankId)
-        {
-            try
-            {
-                var user = _supabase.CurrentUser;
-                if (user == null) return false;
-
-                var userId = Guid.Parse(user.Id!);
-                var record = await _supabase.Client.From<WordBank>()
-                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, wordBankId.ToString())
-                    .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                    .Get();
-
-                var wordBank = record.Models?.FirstOrDefault();
-                if (wordBank == null) return false;
-
-                var bucket = _supabase.Client.Storage.From(BUCKET_NAME);
-                await bucket.Remove(new List<string> { wordBank.FileUrl });
-
-                await _supabase.Client.From<WordBank>()
-                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, wordBankId.ToString())
-                    .Delete();
-
-                Debug.WriteLine("[WordBank] Delete success: " + wordBank.Name);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("[WordBank] Delete error: " + ex.Message);
-                return false;
-            }
-        }
-
-        public async Task<string?> DownloadAsync(Guid wordBankId)
-        {
-            try
-            {
-                var user = _supabase.CurrentUser;
-                if (user == null) return null;
-
-                var userId = Guid.Parse(user.Id!);
-                var record = await _supabase.Client.From<WordBank>()
-                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, wordBankId.ToString())
-                    .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                    .Get();
-
-                var wordBank = record.Models?.FirstOrDefault();
-                if (wordBank == null) return null;
-
-                var bucket = _supabase.Client.Storage.From(BUCKET_NAME);
-                var bytes = await bucket.Download(wordBank.FileUrl, (EventHandler<float>?)null);
-
-                return Encoding.UTF8.GetString(bytes);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("[WordBank] Download error: " + ex.Message);
-                return null;
-            }
-        }
-
-        private static int CountWords(string content)
-        {
-            return content.Split(new[] { '\r', '\n', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
-        }
-
-        private bool _bucketEnsured;
-        private readonly object _bucketLock = new();
-
-        private async Task EnsureBucketExistsAsync()
-        {
-            if (_bucketEnsured) return;
-            lock (_bucketLock)
-            {
-                if (_bucketEnsured) return;
-            }
-
-            try
-            {
-                var buckets = await _supabase.Client.Storage.ListBuckets();
-                var exists = buckets?.Any(b => b.Name == BUCKET_NAME) ?? false;
-                if (!exists)
-                {
-                    Debug.WriteLine($"[WordBank] Bucket '{BUCKET_NAME}' not found, creating...");
-                    await _supabase.Client.Storage.CreateBucket(BUCKET_NAME);
-                    Debug.WriteLine($"[WordBank] Bucket '{BUCKET_NAME}' created");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("[WordBank] EnsureBucket error: " + ex.Message);
-            }
-
-            lock (_bucketLock) { _bucketEnsured = true; }
-        }
-
         public async Task<int> AutoUploadLocalWordBanksAsync(Action<int, int, string>? onProgress = null)
         {
             int uploaded = 0;
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return 0;
+                if (!WebApiService.Instance.IsLoggedIn) return 0;
 
-                var existingBanks = await GetUserWordBanksAsync();
-                var existingNames = new HashSet<string>(existingBanks?.Select(b => b.Name) ?? Enumerable.Empty<string>());
+                var banks = await GetUserWordBanksAsync();
+                var existingNames = new HashSet<string>(banks.Select(b => b.Name));
 
                 var wordlistDir = Path.Combine(
                     Windows.Storage.ApplicationData.Current.LocalFolder.Path, "wordlist");
                 if (!Directory.Exists(wordlistDir)) return 0;
 
-                var files = Directory.GetFiles(wordlistDir, "*.txt").ToArray();
-                var newFiles = files.Where(f => !existingNames.Contains(Path.GetFileName(f))).ToArray();
+                var files = Directory.GetFiles(wordlistDir, "*.txt");
+                var newFiles = files.Where(f => !existingNames.Contains(Path.GetFileName(f))).ToList();
 
-                Debug.WriteLine($"[WordBank] AutoUpload: {files.Length} total, {newFiles.Length} new, {existingNames.Count} in cloud");
+                Debug.WriteLine($"[WordBank] AutoUpload: {files.Length} total, {newFiles.Count} new, {existingNames.Count} in cloud");
 
-                int total = newFiles.Length;
-                if (total == 0) return 0;
-
+                int total = newFiles.Count;
                 int current = 0;
                 foreach (var file in newFiles)
                 {
@@ -229,12 +82,21 @@ namespace English_Listen_WinUI.Services
                     var fileName = Path.GetFileName(file);
                     onProgress?.Invoke(current, total, fileName);
 
-                    var result = await UploadAsync(file);
-                    if (result != null)
-                        uploaded++;
-                    else
-                        Debug.WriteLine($"[WordBank] AutoUpload failed for: {fileName}");
+                    var content = await File.ReadAllTextAsync(file);
+                    banks.Add(new WordBank
+                    {
+                        Name = fileName,
+                        FileSize = new FileInfo(file).Length,
+                        WordCount = CountWords(content),
+                        UploadedAt = DateTime.UtcNow,
+                        ContentHash = ComputeHash(content),
+                        Content = content,
+                    });
+                    uploaded++;
                 }
+
+                if (uploaded > 0)
+                    await PutBanksAsync(banks);
             }
             catch (Exception ex)
             {
@@ -248,8 +110,7 @@ namespace English_Listen_WinUI.Services
             int downloaded = 0;
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return 0;
+                if (!WebApiService.Instance.IsLoggedIn) return 0;
 
                 var cloudBanks = await GetUserWordBanksAsync();
                 if (cloudBanks.Count == 0) return 0;
@@ -265,6 +126,7 @@ namespace English_Listen_WinUI.Services
                 {
                     current++;
                     onProgress?.Invoke(current, total, bank.Name);
+                    if (string.IsNullOrEmpty(bank.Content)) continue;
 
                     var localPath = Path.Combine(wordlistDir, bank.Name);
 
@@ -279,25 +141,7 @@ namespace English_Listen_WinUI.Services
                         }
                     }
 
-                    var content = await DownloadAsync(bank.Id);
-                    if (content == null) continue;
-
-                    await File.WriteAllTextAsync(localPath, content);
-
-                    // update hash if empty
-                    if (string.IsNullOrEmpty(bank.ContentHash))
-                    {
-                        bank.ContentHash = ComputeHash(content);
-                        try
-                        {
-                            await _supabase.Client.From<WordBank>()
-                                .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, bank.Id.ToString())
-                                .Set(w => w.ContentHash, bank.ContentHash)
-                                .Update();
-                        }
-                        catch { }
-                    }
-
+                    await File.WriteAllTextAsync(localPath, bank.Content);
                     downloaded++;
                     Debug.WriteLine("[WordBank] Downloaded: " + bank.Name);
                 }
@@ -325,6 +169,12 @@ namespace English_Listen_WinUI.Services
                 return banks.Count;
             }
             catch { return 0; }
+        }
+
+        private static async Task PutBanksAsync(List<WordBank> banks)
+        {
+            var error = await WebApiService.Instance.PutJsonAsync(Key, JsonSerializer.Serialize(banks));
+            if (error != null) throw new InvalidOperationException(error);
         }
     }
 }

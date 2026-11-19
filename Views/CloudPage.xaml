@@ -46,14 +46,13 @@
 
                         <!-- Login Form -->
                         <StackPanel x:Name="LoginPanel" Spacing="14">
-                            <TextBox x:Name="EmailBox" Header="邮箱"
-                                     PlaceholderText="your@email.com"/>
-                            <PasswordBox x:Name="PasswordBox" Header="密码"
-                                         PlaceholderText="请输入密码"/>
-                            <Button x:Name="LoginBtn" Content="登 录" Click="LoginBtn_Click"
+                            <Button x:Name="LoginBtn" Content="设备登录" Click="LoginBtn_Click"
                                     Style="{StaticResource AccentButtonStyle}"
                                     HorizontalAlignment="Stretch" Height="40"
                                     CornerRadius="8" Margin="0,4,0,0"/>
+                            <TextBlock Text="登录码在网页端「个人中心 → 设备登录」生成（jetcpp.ccwu.cc/device）"
+                                       FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondary}"/>
                         </StackPanel>
 
                         <!-- Logged In Info -->
@@ -82,7 +81,7 @@
                             x:Name="RegisterLink">
                     <TextBlock Text="没有账号？" FontSize="13"
                                Foreground="{ThemeResource TextFillColorSecondary}"/>
-                    <HyperlinkButton Content="注册新账号" Click="GoToRegister_Click"
+                    <HyperlinkButton Content="在网页注册" Click="GoToRegister_Click"
                                      FontSize="13"/>
                 </StackPanel>
 

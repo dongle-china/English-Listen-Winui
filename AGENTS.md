@@ -2,6 +2,7 @@
 项目现状：单项目 WinUI 3 单词听写应用（`English-Listen-WinUI.csproj`，net11.0-windows10.0.19041，x64，MSIX），无 C++ 项目和原生后端（仅 `Helpers/NativeMethods.cs` 一个 Win32 P/Invoke）。分层：Views / ViewModels / Services / Models / Converters / Helpers。现有核心功能：词库管理、背单词、纸笔模式/在线模式听写（System.Speech TTS 朗读）、百度翻译、用户管理、学习进度统计、test_history.json 历史记录、Supabase 云同步（表：profiles / wordbanks / test_results / cloud_data）。
 
 技术要点（与仓库实际一致）：
+
 - 导航：`MainWindow` NavigationView + Frame，`NavigateToPageByName` 中 Tag→页面类型 switch 映射；新页面需同时改 XAML 菜单项和该 switch。
 - 云端：Supabase C# SDK 包名是 `Supabase`（旧名 `supabase-csharp` 已从 NuGet 下架，最高仅到 0.16.2）；凭据从 `config/secret.json` 加载，代码中有回退默认值；`config/secret.json` 不入库（.gitignore）。
 - 数据：按用户目录存储（`ApplicationData/LocalFolder/config/users/{用户名}/`），含 `settings.json`、`test_history.json`（`List<TestResult>`，System.Text.Json，新增字段一律用可空属性保持向后兼容）。
@@ -19,6 +20,7 @@
 7. 先读代码再动手。收到任务后先输出：现状理解、文件级变更计划、风险点、验收方式；等我回复“开始实施”后再改代码。
 8. 不要大范围重命名；不要为了新功能破坏已有公共接口；新增依赖需说明理由和替代方案。
 9. 性能敏感操作（转写、解码）放 Task.Run 后台线程并通过 IProgress 上报，绝不阻塞 UI 线程；原生/互操作方案仅在 C# 实现成为瓶颈时再评估。
+10. 构建确保0问题0警告。
 
 工作方式：
 

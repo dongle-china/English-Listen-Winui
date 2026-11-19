@@ -1279,7 +1279,7 @@ namespace English_Listen_WinUI.Views
                 }
 
                 // 已登录时自动上传到云端
-                if (Services.SupabaseService.Instance.IsLoggedIn)
+                if (Services.WebApiService.Instance.IsLoggedIn)
                     _ = new Services.TestResultService().UploadResultAsync(testResult);
             }
             catch (Exception ex)

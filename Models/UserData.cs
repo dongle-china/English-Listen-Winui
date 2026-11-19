@@ -30,6 +30,12 @@ namespace English_Listen_WinUI.Models
 
         /// <summary>逐词校验明细</summary>
         public List<SentenceWordAttempt>? SentenceWords { get; set; }
+
+        /// <summary>本次提交使用分级提示的次数。null 兼容旧记录（视为 0）。</summary>
+        public int? HintCount { get; set; }
+
+        /// <summary>训练阶段："extensive"/"intensive"/"review"。null 兼容旧记录。</summary>
+        public string? TrainingStage { get; set; }
     }
 
     /// <summary>

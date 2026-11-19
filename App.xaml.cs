@@ -57,20 +57,23 @@ namespace English_Listen_WinUI
 
                 Debug.WriteLine("[STARTUP] 9. Window activated - should now be visible");
 
-                // 后台初始化 Supabase 并恢复会话（不阻塞启动；离线时静默失败）
+                // 后台恢复设备登录会话（不阻塞启动；离线时静默失败）
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await SupabaseService.Instance.InitializeAsync();
-                        if (SupabaseService.Instance.IsLoggedIn)
-                            AuthService.RaiseLoginStateChanged();
-                        Debug.WriteLine("[STARTUP] Supabase initialized (session restored: "
-                                        + SupabaseService.Instance.IsLoggedIn + ")");
+                        await WebApiService.Instance.RestoreSessionAsync();
+                        if (WebApiService.Instance.IsLoggedIn)
+                        {
+                            await WebApiService.Instance.RefreshProfileAsync();
+                            WebApiService.RaiseLoginStateChanged();
+                        }
+                        Debug.WriteLine("[STARTUP] Web session restored: "
+                                        + WebApiService.Instance.IsLoggedIn);
                     }
                     catch (Exception cloudEx)
                     {
-                        Debug.WriteLine($"[STARTUP] Supabase init failed: {cloudEx.Message}");
+                        Debug.WriteLine($"[STARTUP] Web session restore failed: {cloudEx.Message}");
                     }
                 });
 

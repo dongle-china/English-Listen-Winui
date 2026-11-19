@@ -11,10 +11,10 @@ namespace English_Listen_WinUI.Services
 {
     public static class SecretStorageService
     {
-        private const string SECRET_DIR_NAME = "secrets";
-        private const string SECRET_FILE_NAME = "baidu_api.dat";
-        private const string LEGACY_SECRET_FILE_NAME = "secret.json";
-        private const string EMBEDDED_ENCRYPTED_RESOURCE = "English_Listen_WinUI.Config.encrypted_secret.dat";
+        private const string SecretDirName = "secrets";
+        private const string SecretFileName = "baidu_api.dat";
+        private const string LegacySecretFileName = "secret.json";
+        private const string EmbeddedEncryptedResource = "English_Listen_WinUI.Config.encrypted_secret.dat";
 
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("EnglishListenWinUI_BaiduAPI_v1");
 
@@ -22,17 +22,17 @@ namespace English_Listen_WinUI.Services
         {
             try
             {
-                return Path.Combine(ApplicationData.Current.LocalFolder.Path, SECRET_DIR_NAME);
+                return Path.Combine(ApplicationData.Current.LocalFolder.Path, SecretDirName);
             }
             catch
             {
-                return Path.Combine(AppContext.BaseDirectory, SECRET_DIR_NAME);
+                return Path.Combine(AppContext.BaseDirectory, SecretDirName);
             }
         }
 
         private static string GetSecretFilePath()
         {
-            return Path.Combine(GetSecretDirectory(), SECRET_FILE_NAME);
+            return Path.Combine(GetSecretDirectory(), SecretFileName);
         }
 
         public static BaiduSecretConfig? LoadSecret()
@@ -96,11 +96,11 @@ namespace English_Listen_WinUI.Services
                 try
                 {
                     configPath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "config",
-                        LEGACY_SECRET_FILE_NAME);
+                        LegacySecretFileName);
                 }
                 catch
                 {
-                    configPath = Path.Combine(AppContext.BaseDirectory, "config", LEGACY_SECRET_FILE_NAME);
+                    configPath = Path.Combine(AppContext.BaseDirectory, "config", LegacySecretFileName);
                 }
 
                 if (!File.Exists(configPath)) return null;
@@ -126,7 +126,7 @@ namespace English_Listen_WinUI.Services
             try
             {
                 var assembly = Assembly.GetExecutingAssembly();
-                using var stream = assembly.GetManifestResourceStream(EMBEDDED_ENCRYPTED_RESOURCE);
+                using var stream = assembly.GetManifestResourceStream(EmbeddedEncryptedResource);
                 if (stream == null) return null;
 
                 var encrypted = new byte[stream.Length];
@@ -208,7 +208,7 @@ namespace English_Listen_WinUI.Services
 
     public class BaiduSecretConfig
     {
-        public string AppId { get; set; } = string.Empty;
-        public string ApiKey { get; set; } = string.Empty;
+        public string AppId { get; init; } = string.Empty;
+        public string ApiKey { get; init; } = string.Empty;
     }
 }

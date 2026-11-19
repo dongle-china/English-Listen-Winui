@@ -393,7 +393,7 @@ namespace English_Listen_WinUI.ViewModels
             }
         }
 
-        private async Task LoadTestHistoryAsync()
+        public async Task LoadTestHistoryAsync()
         {
             var currentUser = _settingsService.Settings.CurrentUser;
             TestHistory = await _settingsService.LoadTestHistoryAsync(currentUser ?? "");

@@ -9,32 +9,25 @@ using English_Listen_WinUI.ViewModels;
 
 namespace English_Listen_WinUI.Services
 {
+    /// <summary>
+    /// 测试记录云端同步：整表存为单个 KV（/api/data/test_history，值为 List&lt;TestResult&gt; JSON），
+    /// 按 Timestamp 去重（与原 Supabase test_results 表的合并/去重算法一致）。
+    /// </summary>
     public class TestResultService
     {
-        private readonly SupabaseService _supabase = SupabaseService.Instance;
+        private const string Key = "test_history";
 
         public async Task UploadResultAsync(TestResult result)
         {
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return;
+                if (!WebApiService.Instance.IsLoggedIn) return;
 
-                var cloudResult = new CloudTestResult
-                {
-                    UserId = Guid.Parse(user.Id!),
-                    Timestamp = result.Timestamp,
-                    TotalWords = result.TotalWords,
-                    CorrectCount = result.CorrectCount,
-                    Accuracy = result.Accuracy,
-                    WordListName = result.WordListName,
-                    RecordType = result.RecordType ?? "dictation",
-                    WordDetailsJson = result.Words != null
-                        ? JsonSerializer.Serialize(result.Words)
-                        : "[]"
-                };
+                var cloud = await DownloadAllAsync();
+                if (cloud.Any(r => r.Timestamp == result.Timestamp)) return;
 
-                await _supabase.Client.From<CloudTestResult>().Insert(cloudResult);
+                cloud.Add(result);
+                await PutHistoryAsync(cloud);
                 Debug.WriteLine($"[TestResult] Uploaded: {result.WordListName} @ {result.Timestamp}");
             }
             catch (Exception ex)
@@ -47,18 +40,12 @@ namespace English_Listen_WinUI.Services
         {
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return new List<TestResult>();
+                if (!WebApiService.Instance.IsLoggedIn) return new List<TestResult>();
 
-                var userId = Guid.Parse(user.Id!);
-                var result = await _supabase.Client.From<CloudTestResult>()
-                    .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                    .Order(c => c.Timestamp, Supabase.Postgrest.Constants.Ordering.Descending)
-                    .Get();
+                var json = await WebApiService.Instance.GetJsonAsync(Key);
+                if (string.IsNullOrEmpty(json)) return new List<TestResult>();
 
-                return (result.Models ?? new List<CloudTestResult>())
-                    .Select(ToTestResult)
-                    .ToList();
+                return JsonSerializer.Deserialize<List<TestResult>>(json) ?? new List<TestResult>();
             }
             catch (Exception ex)
             {
@@ -109,8 +96,7 @@ namespace English_Listen_WinUI.Services
         {
             try
             {
-                var user = _supabase.CurrentUser;
-                if (user == null) return 0;
+                if (!WebApiService.Instance.IsLoggedIn) return 0;
 
                 var cloud = await DownloadAllAsync();
                 var cloudTimestamps = new HashSet<DateTime>(cloud.Select(r => r.Timestamp));
@@ -119,11 +105,12 @@ namespace English_Listen_WinUI.Services
                     .Where(r => !cloudTimestamps.Contains(r.Timestamp))
                     .ToList();
 
-                foreach (var result in toUpload)
-                    await UploadResultAsync(result);
+                if (toUpload.Count == 0) return 0;
 
-                if (toUpload.Count > 0)
-                    Debug.WriteLine($"[TestResult] Uploaded {toUpload.Count} local-only results");
+                cloud.AddRange(toUpload);
+                await PutHistoryAsync(cloud);
+
+                Debug.WriteLine($"[TestResult] Uploaded {toUpload.Count} local-only results");
                 return toUpload.Count;
             }
             catch (Exception ex)
@@ -133,26 +120,10 @@ namespace English_Listen_WinUI.Services
             }
         }
 
-        private static TestResult ToTestResult(CloudTestResult c)
+        private static async Task PutHistoryAsync(List<TestResult> history)
         {
-            var words = new List<WordTranslationPair>();
-            try
-            {
-                if (!string.IsNullOrEmpty(c.WordDetailsJson))
-                    words = JsonSerializer.Deserialize<List<WordTranslationPair>>(c.WordDetailsJson) ?? new();
-            }
-            catch { }
-
-            return new TestResult
-            {
-                Timestamp = c.Timestamp,
-                TotalWords = c.TotalWords,
-                CorrectCount = c.CorrectCount,
-                Accuracy = c.Accuracy,
-                WordListName = c.WordListName,
-                RecordType = c.RecordType,
-                Words = words.Count > 0 ? words : null
-            };
+            var error = await WebApiService.Instance.PutJsonAsync(Key, JsonSerializer.Serialize(history));
+            if (error != null) throw new InvalidOperationException(error);
         }
     }
 }

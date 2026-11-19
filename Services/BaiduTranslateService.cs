@@ -25,7 +25,6 @@ namespace English_Listen_WinUI.Services
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        private readonly object _cacheLock = new object();
         private readonly string _limitCachePath;
 
         private readonly Random _random = new();
@@ -33,9 +32,14 @@ namespace English_Listen_WinUI.Services
         private readonly string _translationCachePath;
         private string _apiKey = null!;
         private string _appId = null!;
-        private string _currentDate;
-        private Dictionary<string, int> _dailyLimitCache;
         private Dictionary<string, string> _translationCache;
+
+        // 限额状态全进程共享：三个页面各自 new 实例，兑换/计数必须互通才能立即生效
+        private static readonly object _cacheLock = new object();
+        private static string _currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+        private static Dictionary<string, int> _dailyLimitCache = new Dictionary<string, int> { { _currentDate, 0 } };
+        private static Dictionary<string, int> _dailyLimitOverrides = new Dictionary<string, int>();
+        private readonly string _limitOverridePath;
 
         public BaiduTranslateService()
         {
@@ -64,10 +68,9 @@ namespace English_Listen_WinUI.Services
 
             _translationCachePath = Path.Combine(cacheDir, "translation_cache.json");
             _limitCachePath = Path.Combine(cacheDir, "translation_limit.json");
-            _currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+            _limitOverridePath = Path.Combine(cacheDir, "translation_limit_override.json");
 
             _translationCache = new Dictionary<string, string>();
-            _dailyLimitCache = new Dictionary<string, int> { { _currentDate, 0 } };
 
             try
             {
@@ -256,30 +259,57 @@ namespace English_Listen_WinUI.Services
                 }
             }
 
-            if (File.Exists(_limitCachePath))
+            lock (_cacheLock)
             {
-                try
+                if (File.Exists(_limitCachePath))
                 {
-                    var json = File.ReadAllText(_limitCachePath);
-                    var cache = JsonSerializer.Deserialize<Dictionary<string, int>>(json, jsonOptions) ??
-                                new Dictionary<string, int>();
-
-                    var cutoffDate = DateTime.Now.AddDays(-MAX_DAILY_HISTORY_DAYS).ToString("yyyy-MM-dd");
-                    var staleKeys = cache.Keys.Where(k => string.Compare(k, cutoffDate, StringComparison.Ordinal) < 0)
-                        .ToList();
-                    foreach (var key in staleKeys)
+                    try
                     {
-                        cache.Remove(key);
+                        var json = File.ReadAllText(_limitCachePath);
+                        var cache = JsonSerializer.Deserialize<Dictionary<string, int>>(json, jsonOptions) ??
+                                    new Dictionary<string, int>();
+
+                        var cutoffDate = DateTime.Now.AddDays(-MAX_DAILY_HISTORY_DAYS).ToString("yyyy-MM-dd");
+                        var staleKeys = cache.Keys.Where(k => string.Compare(k, cutoffDate, StringComparison.Ordinal) < 0)
+                            .ToList();
+                        foreach (var key in staleKeys)
+                        {
+                            cache.Remove(key);
+                        }
+
+                        if (cache.TryGetValue(_currentDate, out var count))
+                        {
+                            _dailyLimitCache[_currentDate] = count;
+                        }
                     }
-
-                    if (cache.TryGetValue(_currentDate, out var count))
+                    catch
                     {
-                        _dailyLimitCache[_currentDate] = count;
+                        _dailyLimitCache[_currentDate] = 0;
                     }
                 }
-                catch
+
+                if (File.Exists(_limitOverridePath))
                 {
-                    _dailyLimitCache[_currentDate] = 0;
+                    try
+                    {
+                        var json = File.ReadAllText(_limitOverridePath);
+                        var overrides = JsonSerializer.Deserialize<Dictionary<string, int>>(json, jsonOptions) ??
+                                        new Dictionary<string, int>();
+
+                        var cutoffDate = DateTime.Now.AddDays(-MAX_DAILY_HISTORY_DAYS).ToString("yyyy-MM-dd");
+                        var staleKeys = overrides.Keys.Where(k => string.Compare(k, cutoffDate, StringComparison.Ordinal) < 0)
+                            .ToList();
+                        foreach (var key in staleKeys)
+                        {
+                            overrides.Remove(key);
+                        }
+
+                        _dailyLimitOverrides = overrides;
+                    }
+                    catch
+                    {
+                        // 保留默认（无兑换覆盖）
+                    }
                 }
             }
         }
@@ -307,6 +337,9 @@ namespace English_Listen_WinUI.Services
 
                     var limitJson = JsonSerializer.Serialize(_dailyLimitCache, jsonOptions);
                     File.WriteAllText(_limitCachePath, limitJson);
+
+                    var overrideJson = JsonSerializer.Serialize(_dailyLimitOverrides, jsonOptions);
+                    File.WriteAllText(_limitOverridePath, overrideJson);
                 }
                 catch
                 {
@@ -314,16 +347,23 @@ namespace English_Listen_WinUI.Services
             }
         }
 
+        /// <summary>当日有效限额：有兑换覆盖用兑换值，否则用默认 DAILY_LIMIT</summary>
+        private static int GetTodayLimit()
+        {
+            return _dailyLimitOverrides.TryGetValue(_currentDate, out var limit) ? limit : DAILY_LIMIT;
+        }
+
         public int GetRemainingLimit()
         {
             CheckDate();
-            return DAILY_LIMIT - _dailyLimitCache[_currentDate];
+            return GetTodayLimit() - _dailyLimitCache[_currentDate];
         }
 
         public void ResetDailyLimit(int newLimit)
         {
             CheckDate();
             _dailyLimitCache[_currentDate] = 0;
+            _dailyLimitOverrides[_currentDate] = newLimit;
             SaveCache();
             Debug.WriteLine($"已重置当日限额为: {newLimit}");
         }
@@ -345,7 +385,7 @@ namespace English_Listen_WinUI.Services
         private bool CheckLimit()
         {
             CheckDate();
-            return _dailyLimitCache[_currentDate] < DAILY_LIMIT;
+            return _dailyLimitCache[_currentDate] < GetTodayLimit();
         }
 
         private void IncrementLimit()
@@ -367,7 +407,7 @@ namespace English_Listen_WinUI.Services
 
             if (!CheckLimit())
             {
-                throw new Exception($"每日翻译限额已用完，最多只能翻译{DAILY_LIMIT}个单词");
+                throw new Exception($"每日翻译限额已用完，最多只能翻译{GetTodayLimit()}个单词");
             }
 
             var cacheKey = $"{from}:{to}:{text}";

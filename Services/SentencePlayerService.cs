@@ -22,6 +22,9 @@ namespace English_Listen_WinUI.Services
         /// <summary>非循环模式下播完/到达句尾时触发（用于自动进入下一句等）</summary>
         public event Action? SegmentEnded;
 
+        /// <summary>是否已加载媒体源（泛听暂停后区分"续播"与"重新开始"）。</summary>
+        public bool HasSource => _player.Source != null;
+
         public bool IsPlaying { get; private set; }
 
         public SentencePlayerService()

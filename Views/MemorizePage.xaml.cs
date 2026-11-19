@@ -106,6 +106,7 @@ namespace English_Listen_WinUI.Views
         private SpeechSynthesizer? _synthesizer;
         private int _totalWords;
         private List<MemorizeWordItem> _wordList = new();
+        private readonly List<DictationTestPage.WordTranslationPair> _memorizedWords = new();
 
         public MemorizePage()
         {
@@ -682,6 +683,44 @@ namespace English_Listen_WinUI.Views
             ShowCompletionDialog();
         }
 
+        /// <summary>将当前单词标记为已背会，从学习列表移除并进入下一个。</summary>
+        private async void MarkMemorizedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_studyWords.Count == 0 || _currentIndex >= _studyWords.Count) return;
+
+            var pair = _studyWords[_currentIndex];
+            if (!_memorizedWords.Any(p => p.Word == pair.Word))
+                _memorizedWords.Add(pair);
+
+            _studyWords.RemoveAt(_currentIndex);
+            if (_studyWords.Count == 0)
+            {
+                ShowCompletionDialog();
+                return;
+            }
+            if (_currentIndex >= _studyWords.Count)
+                _currentIndex = _studyWords.Count - 1;
+            ShowCurrentWord();
+            await SaveCurrentState();
+        }
+
+        /// <summary>用已背会的单词发起听写测试。</summary>
+        private async void DictateMemorizedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_memorizedWords.Count == 0)
+            {
+                MainWindow.ShowNotification("暂无已背会单词，请先点击“背会”标记单词");
+                return;
+            }
+
+            var testParams = new WordsPage.DictationTestParamsWithTranslations(
+                _memorizedWords,
+                false,
+                false,
+                false);
+            Frame?.Navigate(typeof(DictationTestPage), testParams);
+        }
+
         private async void ShowCompletionDialog()
         {
             if (_studyWords.Count == 0)
@@ -763,7 +802,7 @@ namespace English_Listen_WinUI.Views
                 await settingsService.SaveTestHistoryAsync(currentUser, testHistory);
 
                 // 已登录时自动上传到云端
-                if (Services.SupabaseService.Instance.IsLoggedIn)
+                if (Services.WebApiService.Instance.IsLoggedIn)
                     _ = new Services.TestResultService().UploadResultAsync(record);
 
                 // 同步到 ViewModel

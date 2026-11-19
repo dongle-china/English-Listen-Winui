@@ -79,8 +79,8 @@
                         <NavigationViewItem Icon="Page2" Content="背单词" Tag="MemorizePage" />
                     </NavigationViewItem.MenuItems>
                 </NavigationViewItem>
-                <NavigationViewItem Icon="Map" Content="统计" Tag="ProgressPage" />
-                <NavigationViewItem Icon="People" Content="用户管理" Tag="UserPage" />
+                <NavigationViewItem Icon="Calendar" Content="学习历史" Tag="ProgressPage" />
+                <NavigationViewItem Icon="Contact" Content="个人中心" Tag="ProfilePage" />
             </NavigationView.MenuItems>
 
             <!-- Footer Menu Items -->

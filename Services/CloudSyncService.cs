@@ -1,74 +1,36 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
-using English_Listen_WinUI.Models;
 
 namespace English_Listen_WinUI.Services
 {
+    /// <summary>
+    /// 云同步（jetcpp.ccwu.cc KV 端点 /api/data/{key}）。
+    /// settings.json / 翻译库 / 分组 各占一个 key，整文件上传下载。
+    /// </summary>
     public class CloudSyncService
     {
-        private readonly SupabaseService _supabase = SupabaseService.Instance;
-
         // ── Low-level CRUD ──────────────────────────────────────
 
         public async Task UploadAsync(string dataType, string json)
         {
-            var user = _supabase.CurrentUser;
-            if (user == null) throw new UnauthorizedAccessException("请先登录");
+            if (!WebApiService.Instance.IsLoggedIn) throw new UnauthorizedAccessException("请先登录");
 
-            var userId = Guid.Parse(user.Id!);
-
-            var existing = await _supabase.Client.From<CloudSyncData>()
-                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                .Filter("data_type", Supabase.Postgrest.Constants.Operator.Equals, dataType)
-                .Get();
-
-            var record = existing.Models?.FirstOrDefault();
-
-            if (record != null)
-            {
-                record.DataJson = json;
-                record.UpdatedAt = DateTime.UtcNow;
-                await _supabase.Client.From<CloudSyncData>()
-                    .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, record.Id.ToString())
-                    .Set(r => r.DataJson, json)
-                    .Set(r => r.UpdatedAt, record.UpdatedAt)
-                    .Update();
-            }
-            else
-            {
-                var newRecord = new CloudSyncData
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    DataType = dataType,
-                    DataJson = json,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await _supabase.Client.From<CloudSyncData>().Insert(newRecord);
-            }
+            var error = await WebApiService.Instance.PutJsonAsync(dataType, json);
+            if (error != null) throw new InvalidOperationException(error);
 
             Debug.WriteLine($"[CloudSync] Uploaded {dataType} ({json.Length} bytes)");
         }
 
         public async Task<string?> DownloadAsync(string dataType)
         {
-            var user = _supabase.CurrentUser;
-            if (user == null) return null;
+            if (!WebApiService.Instance.IsLoggedIn) return null;
 
-            var userId = Guid.Parse(user.Id!);
-            var result = await _supabase.Client.From<CloudSyncData>()
-                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId.ToString())
-                .Filter("data_type", Supabase.Postgrest.Constants.Operator.Equals, dataType)
-                .Get();
-
-            var record = result.Models?.FirstOrDefault();
-            if (record == null) return null;
-
-            Debug.WriteLine($"[CloudSync] Downloaded {dataType} ({record.DataJson.Length} bytes)");
-            return record.DataJson;
+            var json = await WebApiService.Instance.GetJsonAsync(dataType);
+            if (json != null)
+                Debug.WriteLine($"[CloudSync] Downloaded {dataType} ({json.Length} bytes)");
+            return json;
         }
 
         // ── 文件级上传/下载 ────────────────────────────────────

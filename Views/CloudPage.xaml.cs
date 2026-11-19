@@ -3,19 +3,23 @@ using Microsoft.UI.Xaml.Controls;
 using English_Listen_WinUI.Services;
 using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace English_Listen_WinUI.Views
 {
     public sealed partial class CloudPage : Page
     {
-        private readonly AuthService _authService = new();
-
         public CloudPage()
         {
             this.InitializeComponent();
             Loaded += CloudPage_Loaded;
+            WebApiService.LoginStateChanged += OnLoginStateChanged;
+            Unloaded += (_, _) => WebApiService.LoginStateChanged -= OnLoginStateChanged;
+        }
+
+        private void OnLoginStateChanged()
+        {
+            DispatcherQueue.TryEnqueue(async () => await UpdateStatusAsync());
         }
 
         private async void CloudPage_Loaded(object sender, RoutedEventArgs e)
@@ -25,19 +29,19 @@ namespace English_Listen_WinUI.Views
 
         private async Task UpdateStatusAsync()
         {
-            if (SupabaseService.Instance.IsLoggedIn)
+            if (WebApiService.Instance.IsLoggedIn)
             {
-                var user = SupabaseService.Instance.CurrentUser;
+                var web = WebApiService.Instance;
                 StatusText.Text = "欢迎回来";
                 LoginPanel.Visibility = Visibility.Collapsed;
                 LoggedInPanel.Visibility = Visibility.Visible;
                 RegisterLink.Visibility = Visibility.Collapsed;
                 CloudSyncPanel.Visibility = Visibility.Visible;
 
-                UserEmailText.Text = user?.Email ?? "";
-
-                var profile = await _authService.GetProfileAsync();
-                UserRoleText.Text = profile?.Role ?? "user";
+                UserEmailText.Text = string.IsNullOrWhiteSpace(web.Nickname)
+                    ? (web.Email ?? "")
+                    : web.Nickname!;
+                UserRoleText.Text = "在线账户";
             }
             else
             {
@@ -49,65 +53,33 @@ namespace English_Listen_WinUI.Views
             }
         }
 
-        private async void LoginBtn_Click(object sender, RoutedEventArgs e)
+        private void LoginBtn_Click(object sender, RoutedEventArgs e)
         {
-            var email = EmailBox.Text?.Trim();
-            var password = PasswordBox.Password;
-
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            // 复用标题栏登录对话框（设备登录：网页生成登录码 → 输入换凭证）
+            if (App.MainWindow is MainWindow mw)
             {
-                MainWindow.ShowNotification("请输入邮箱和密码");
-                return;
+                mw.ShowLoginDialogFromProfile();
             }
-
-            LoginBtn.IsEnabled = false;
-            LoginBtn.Content = "登录中...";
-
-            var result = await _authService.SignInAsync(email, password);
-            if (result.Success)
-            {
-                // 统一登录同步管线：云端配置 + 离线记录迁移 + 词库 + 学习进度
-                MainWindow.ShowPersistentNotification("正在从云端拉取数据...", "云同步");
-                try
-                {
-                    await LoginFlow.CompleteLoginAsync(App.SharedViewModel!, email,
-                        new Progress<string>(m => MainWindow.UpdateNotification(m)));
-                    MainWindow.HideNotification();
-                    Debug.WriteLine("[CloudSync] Login sync completed.");
-                }
-                catch (Exception syncEx)
-                {
-                    MainWindow.HideNotification();
-                    MainWindow.ShowNotification($"登录成功，但云端同步失败: {syncEx.Message}");
-                }
-                await UpdateStatusAsync();
-            }
-            else
-            {
-                MainWindow.ShowNotification($"登录失败: {result.ErrorMessage}");
-            }
-
-            LoginBtn.IsEnabled = true;
-            LoginBtn.Content = "登 录";
         }
 
         private async void LogoutBtn_Click(object sender, RoutedEventArgs e)
         {
-            await _authService.SignOutAsync();
+            await WebApiService.Instance.SignOutAsync();
             MainWindow.ShowNotification("已退出登录");
             await UpdateStatusAsync();
         }
 
-        private void GoToRegister_Click(object sender, RoutedEventArgs e)
+        private async void GoToRegister_Click(object sender, RoutedEventArgs e)
         {
-            MainWindow.GoToPage(typeof(RegisterPage));
+            // 注册需邮箱验证码，只能在网页端完成
+            await Windows.System.Launcher.LaunchUriAsync(new Uri(WebApiService.BaseUrl + "/auth"));
         }
 
         // ── Manual Cloud Sync Buttons ───────────────────────────
 
         private async void CloudSyncAllBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (!SupabaseService.Instance.IsLoggedIn)
+            if (!WebApiService.Instance.IsLoggedIn)
             {
                 MainWindow.ShowNotification("请先登录");
                 return;

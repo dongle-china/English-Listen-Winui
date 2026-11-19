@@ -1335,12 +1335,9 @@ namespace English_Listen_WinUI.Views
                             }
                         }
 
-                        // 每翻译10个单词或最后一批时更新进度
-                        if (translated % 10 == 0 || translated + skipped == totalCount)
-                        {
-                            var progress = $"翻译: {translated}/{totalCount}";
-                            _ = DispatcherQueue.TryEnqueue(() => { LoadingStatusText.Text = progress; });
-                        }
+                        // 每翻译1个单词即更新进度
+                        var progress = $"翻译: {translated}/{totalCount}";
+                        _ = DispatcherQueue.TryEnqueue(() => { LoadingStatusText.Text = progress; });
                     }
 
                     return (toSave, translated, limitHit, skipped);

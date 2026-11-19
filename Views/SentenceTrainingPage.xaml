@@ -7,14 +7,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="using:English_Listen_WinUI.Views"
     mc:Ignorable="d"
-    d:DesignHeight="600" d:DesignWidth="900">
+    d:DesignHeight="700" d:DesignWidth="950">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -29,63 +29,127 @@
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </StackPanel>
 
-        <!-- Playback controls -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,16,0,16">
-            <Button x:Name="PlayPauseButton"
-                    Content="播放"
-                    MinWidth="90"
-                    Style="{StaticResource AccentButtonStyle}"
-                    Click="PlayPauseButton_Click" />
-            <Button Content="重听"
-                    Click="ReplayButton_Click" />
-            <ToggleSwitch x:Name="LoopSwitch"
-                          Header="循环"
-                          OnContent="开" OffContent="关"
-                          Toggled="LoopSwitch_Toggled" />
-            <Button Content="上一句"
-                    Click="PrevButton_Click" />
-            <Button Content="下一句"
-                    Click="NextButton_Click" />
+        <!-- 三阶段步骤条 + 阶段状态 InfoBar -->
+        <StackPanel Grid.Row="1" Margin="0,14,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <RadioButton x:Name="ExtensiveStep" GroupName="StageStep"
+                             Content="① 泛听" Tag="Extensive"
+                             Checked="StageStep_Checked" />
+                <RadioButton x:Name="IntensiveStep" GroupName="StageStep"
+                             Content="② 精听" Tag="Intensive"
+                             Checked="StageStep_Checked" />
+                <RadioButton x:Name="ReviewStep" GroupName="StageStep"
+                             Content="③ 复习" Tag="Review"
+                             Checked="StageStep_Checked" />
+            </StackPanel>
+            <InfoBar x:Name="StageInfoBar"
+                     Margin="0,8,0,0"
+                     IsOpen="False"
+                     IsClosable="True" />
         </StackPanel>
 
-        <!-- Word-by-word input -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="WordsPanel">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsWrapGrid Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="local:SentenceWordItem">
-                        <StackPanel Margin="4,4,4,10">
-                            <TextBox Text="{x:Bind Input, Mode=TwoWay}"
-                                     IsReadOnly="{x:Bind Locked}"
-                                     MinWidth="90" MaxWidth="220"
-                                     PlaceholderText="{x:Bind Placeholder}" />
-                            <TextBlock Text="{x:Bind Feedback}"
-                                       Foreground="{x:Bind FeedbackBrush}"
-                                       FontSize="12"
-                                       Visibility="{x:Bind FeedbackVisibility}"
-                                       Margin="2,2,0,0"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+        <!-- 阶段内容 -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
 
-        <!-- Submit & result -->
-        <StackPanel Grid.Row="3" Spacing="8" Margin="0,16,0,0">
-            <Button x:Name="SubmitButton"
-                    Content="提交校验"
-                    Style="{StaticResource AccentButtonStyle}"
-                    Click="SubmitButton_Click" />
-            <TextBlock x:Name="ResultText" FontSize="18" FontWeight="SemiBold" />
-            <TextBlock x:Name="TranscriptTextBlock"
-                       TextWrapping="Wrap"
-                       Visibility="Collapsed"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-        </StackPanel>
+            <!-- 泛听面板 -->
+            <StackPanel x:Name="ExtensivePanel"
+                        Spacing="12"
+                        VerticalAlignment="Top"
+                        Visibility="Collapsed">
+                <TextBlock x:Name="ExtProgressText" FontSize="14"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <ProgressBar x:Name="ExtProgressBar" Minimum="0" Maximum="100" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button x:Name="ExtPlayPauseButton"
+                            Content="播放"
+                            MinWidth="90"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="ExtPlayPauseButton_Click" />
+                    <Button Content="从头播放" Click="ExtRestartButton_Click" />
+                    <Button x:Name="MarkDifficultButton"
+                            Content="标记难点"
+                            Click="MarkDifficultButton_Click" />
+                    <ToggleSwitch x:Name="ShowTranscriptSwitch"
+                                  Header="显示原文"
+                                  OnContent="开" OffContent="关"
+                                  Toggled="ShowTranscriptSwitch_Toggled" />
+                </StackPanel>
+                <TextBlock x:Name="ExtSentenceText"
+                           TextWrapping="Wrap" FontSize="15"
+                           Visibility="Collapsed"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- 精听/复习面板 -->
+            <Grid x:Name="DetailPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Playback controls -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,4,0,8">
+                    <Button x:Name="PlayPauseButton"
+                            Content="播放"
+                            MinWidth="90"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="PlayPauseButton_Click" />
+                    <Button Content="重听" Click="ReplayButton_Click" />
+                    <ToggleSwitch x:Name="LoopSwitch"
+                                  Header="循环"
+                                  OnContent="开" OffContent="关"
+                                  Toggled="LoopSwitch_Toggled" />
+                    <Button Content="上一句" Click="PrevButton_Click" />
+                    <Button Content="下一句" Click="NextButton_Click" />
+                </StackPanel>
+
+                <!-- Word-by-word input（输入中即时校验 + 分级提示） -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="WordsPanel">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="local:SentenceWordItem">
+                                <StackPanel Margin="4,4,4,10" Spacing="2">
+                                    <TextBox Text="{x:Bind Input, Mode=TwoWay}"
+                                             IsReadOnly="{x:Bind Locked, Mode=OneWay}"
+                                             MinWidth="90" MaxWidth="220"
+                                             PlaceholderText="{x:Bind Placeholder}" />
+                                    <Button Content="{x:Bind HintButtonText, Mode=OneWay}"
+                                            MinWidth="90"
+                                            Click="{x:Bind RequestHint}"
+                                            IsEnabled="{x:Bind CanHint, Mode=OneWay}" />
+                                    <TextBlock Text="{x:Bind HintText, Mode=OneWay}"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{x:Bind Feedback, Mode=OneWay}"
+                                               Foreground="{x:Bind FeedbackBrush, Mode=OneWay}"
+                                               FontSize="12"
+                                               Margin="2,0,0,0"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Submit & result -->
+                <StackPanel Grid.Row="2" Spacing="8" Margin="0,16,0,0">
+                    <Button x:Name="SubmitButton"
+                            Content="提交校验"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="SubmitButton_Click" />
+                    <TextBlock x:Name="ResultText" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TranscriptTextBlock"
+                               TextWrapping="Wrap"
+                               Visibility="Collapsed"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>

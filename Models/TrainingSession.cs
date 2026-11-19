@@ -43,6 +43,31 @@ namespace English_Listen_WinUI.Models
     }
 
     /// <summary>
+    /// 自适应难度状态：本地规则引擎（AdaptiveDifficultyService）的运行时状态，随 TrainingSession 持久化。
+    /// 旧 training_sessions.json 无此字段时为 null，训练页运行时补建。
+    /// </summary>
+    public class AdaptiveState
+    {
+        /// <summary>当前播放语速（0.7~1.0）</summary>
+        public double PlaybackRate { get; set; } = 1.0;
+
+        /// <summary>连续“听写吃力”次数</summary>
+        public int ConsecutiveStruggle { get; set; }
+
+        /// <summary>连续“全对无提示”次数</summary>
+        public int ConsecutiveClean { get; set; }
+
+        /// <summary>提前显示句首关键词辅助</summary>
+        public bool ShowKeywordsAhead { get; set; }
+
+        /// <summary>自动提示级别：0=关，1=首字母，2=首字母+长度点占位，3=整词</summary>
+        public int AutoHintLevel { get; set; }
+
+        /// <summary>循环播放回跳间隔（毫秒，0=立即回跳）</summary>
+        public int LoopGapMs { get; set; }
+    }
+
+    /// <summary>
     /// 素材训练会话：三阶段状态与每句进度。
     /// 持久化于 {用户目录}/training_sessions.json（List&lt;TrainingSession&gt;，按 MediaSourceId 一条）。
     /// </summary>
@@ -57,5 +82,8 @@ namespace English_Listen_WinUI.Models
         public int ExtensivePlayedCount { get; set; }
 
         public List<SentenceProgress> Progress { get; set; } = new();
+
+        /// <summary>自适应难度状态（可空，旧 JSON 兼容；null 时由训练页补建）</summary>
+        public AdaptiveState? Adaptive { get; set; }
     }
 }

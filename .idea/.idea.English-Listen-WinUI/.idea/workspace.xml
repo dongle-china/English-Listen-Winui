@@ -18,40 +18,6 @@
   <component name="ChangeListManager">
     <list default="true" id="be0c16d3-9dcb-42e8-b3f0-c7e177d82a49" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.English-Listen-WinUI/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.English-Listen-WinUI/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/App.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/App.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/English-Listen-WinUI.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/English-Listen-WinUI.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainWindow.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/MainWindow.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainWindow.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MainWindow.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/CloudSyncData.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/CloudTestResult.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/StudyPlan.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Models/StudyPlan.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/SupabaseProfile.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/UserData.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Models/UserData.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Models/WordBank.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Models/WordBank.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/AuthService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/BaiduTranslateService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/BaiduTranslateService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/CloudSyncService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/CloudSyncService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/SecretStorageService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/SecretStorageService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/SentencePlayerService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/SentencePlayerService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/SupabaseService.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/TestResultService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/TestResultService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Services/WordBankService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Services/WordBankService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ViewModels/MainViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/ViewModels/MainViewModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/CloudPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/Views/CloudPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/CloudPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/CloudPage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/DictationTestPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/DictationTestPage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/MemorizePage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/Views/MemorizePage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/MemorizePage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/MemorizePage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/ProgressPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/Views/ProgressPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/ProgressPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/ProgressPage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/RegisterPage.xaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/RegisterPage.xaml.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/SentenceTrainingPage.xaml" beforeDir="false" afterPath="$PROJECT_DIR$/Views/SentenceTrainingPage.xaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/SentenceTrainingPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/SentenceTrainingPage.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/UserPage.xaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/UserPage.xaml.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Views/WordsPage.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Views/WordsPage.xaml.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

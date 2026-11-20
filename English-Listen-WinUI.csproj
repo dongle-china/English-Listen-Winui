@@ -5,6 +5,9 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>English_Listen_WinUI</RootNamespace>
       <Version>1.1.26.0</Version>
+    <!-- 允许在非 Windows 上 restore net*-windows 目标（GitHub Automatic Dependency Submission 在 Linux 上
+         dotnet restore 计算 NuGet 依赖图，缺此属性会 NETSDK1100 每次失败；Windows 本地构建无影响） -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
     <Platforms>x86;x64;ARM64</Platforms>
     <UseWinUI>true</UseWinUI>

@@ -45,7 +45,7 @@
                      IsClosable="True"
                      Severity="Warning"
                      Title="未配置转写模型"
-                     Message="转写需要 Whisper ggml 模型文件（如 ggml-base.bin，可从 whisper.cpp 项目 models 说明下载）。点击上方&#x201C;选择转写模型&#x201D;指定。" />
+                      Message="转写需要 Whisper ggml 模型文件。可在「设置」页面从魔搭社区下载（推荐 base 模型），或点击上方&#x201C;选择转写模型&#x201D;指定本地文件。" />
             <InfoBar x:Name="ErrorInfoBar"
                      IsOpen="False"
                      IsClosable="True"

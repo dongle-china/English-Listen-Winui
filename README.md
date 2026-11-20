@@ -1,220 +1,109 @@
-# English Listen - 专业英语听写训练工具
+# English Listen
 
-English Listen 是一款专为英语学习者设计的智能听写软件。它不仅仅是一个单词播放器，更是提升听力和拼写技能的有效工具。无论你是学生、教师还是自学爱好者，它都能帮助你轻松完成英语听写训练。
+[![UI](https://img.shields.io/badge/UI框架-WinUI%203-0078D4?style=flat&logo=windows)](https://learn.microsoft.com/windows/apps/winui/) [![.NET](https://img.shields.io/badge/.NET-11-512BD4?style=flat&logo=dotnet)](https://dotnet.microsoft.com) [![Platform](https://img.shields.io/badge/平台-Windows%2010%2F11-0078D6?style=flat&logo=windows11)](https://github.com/dongle-china/English-Listen-Winui/releases) [![License](https://img.shields.io/badge/许可证-MIT-blue?style=flat&logo=open-source-initiative)](LICENSE.txt) [![GitHub Release](https://img.shields.io/github/v/release/dongle-china/English-Listen-Winui?style=flat&logo=github&label=版本)](https://github.com/dongle-china/English-Listen-Winui/releases) [![GitHub Downloads](https://img.shields.io/github/downloads/dongle-china/English-Listen-Winui/total?style=flat&logo=github&label=下载量)](https://github.com/dongle-china/English-Listen-Winui/releases) [![GitHub last commit](https://img.shields.io/github/last-commit/dongle-china/English-Listen-Winui?style=flat&logo=git&label=最后提交)](https://github.com/dongle-china/English-Listen-Winui/commits/main) [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/dongle-china/English-Listen-Winui/ci.yml?style=flat&logo=githubactions&label=持续集成)](https://github.com/dongle-china/English-Listen-Winui/actions/workflows/ci.yml)
 
-## 项目概述
+**English Listen** 是一款**离线优先**的 Windows 桌面英语精听训练台，通过 **真实音视频导入**、**Whisper 本地转写切句**、**泛听 / 精听 / 复习三阶段训练**、**错误归因与自适应难度** 等能力，帮助你从"背单词"走向"听得懂真实语料"。
 
-本项目从 Qt6 版本迁移至 WinUI3 框架，采用现代化的 Windows 原生界面设计，提供更流畅的用户体验。软件支持 Windows 10 和 Windows 11 系统，充分利用 Windows App SDK 的最新特性。
+基于 WinUI 3 / Windows App SDK 构建，原生 Windows 11 视觉（Mica 背景、深浅色主题），支持 Windows 10 (17763+) 与 Windows 11，x86 / x64 / ARM64 三架构发布。
 
-## 核心功能特性
+---
 
-### 智能词库管理系统
+## 特性
 
-| 功能特性 | 描述                         |
-| ---- | -------------------------- |
-| 灵活编辑 | 随心添加/删除单词，支持批量操作           |
-| 文件管理 | 支持多种格式导入导出（TXT、CSV），多级分类管理 |
-| 智能保存 | 自动保存学习记录，实时同步临时词库          |
-| 便捷操作 | "另存为"功能，自动创建临时词库           |
-| 分组管理 | 支持创建、编辑、删除词库分组，拖拽式管理       |
-| 搜索筛选 | 快速搜索单词，按首字母、数字等条件筛选        |
+- **单词听写**：在线模式（边听边输入、自动判分）与纸笔模式（纸上作答、录入成绩），随机顺序与朗读翻译可选。
+- **词库管理**：创建 / 加载 / 导入 / 导出 / 删除词库，分组管理与搜索筛选。
+- **背单词**：每日计划、自动朗读单词与中文翻译、学习记录自动保存。
+- **素材库**：导入你有权使用的本地音视频，Whisper.net 全程离线转写并自动切句，内容不上传。
+- **句子精听**：泛听（整段播放、标记难点）→ 精听（逐句逐词校验）→ 复习（只练未掌握句）三阶段训练。
+- **错误归因**：错误标签体系自动区分拼写、连读、语速等错误类型。
+- **自适应难度**：基于错误模式的规则引擎动态调整难度并推荐句子，纯本地、可解释。
+- **百度翻译**：批量翻译未翻译单词，一键追加到词库。
+- **多用户与云同步**：每用户数据独立存于本地，可选 Web API 云同步学习记录。
+- **学习统计**：听写与精听历史、成绩图表、排序与导出。
+- **原生体验**：Mica 材质背景、深浅色主题跟随系统、微软雅黑界面字体。
 
-### 个性化训练控制
+---
 
-| 控制选项 | 功能说明              |
-| ---- | ----------------- |
-| 时间调节 | 自由设定朗读间隔时间（1-60秒） |
-| 播放控制 | 暂停/继续功能，随时掌控训练节奏  |
-| 快速导航 | 上一词/下一词快速切换       |
-| 重复播放 | 强化记忆效果            |
-| 随机顺序 | 支持随机播放模式，增加挑战性    |
+## 快速开始
 
-### 视觉体验优化
+对于一般用户，建议直接在 [Releases](https://github.com/dongle-china/English-Listen-Winui/releases) 下载最新版本的 MSIX 安装包。
 
-| 界面特性  | 详细描述              |
-| ----- | ----------------- |
-| 主题切换  | 深色/浅色主题一键切换       |
-| 系统适配  | 自动适配 Windows 系统主题 |
-| 现代化设计 | 基于 WinUI3 的流畅界面设计 |
-| 响应式布局 | 适配各种屏幕尺寸          |
+### 单词听写
 
-### 学习进度追踪
+1. 进入「查看单词」，添加或导入词库
+2. 勾选单词，点击「开始听写」
+3. 选择在线 / 纸笔模式开始训练
+4. 完成后查看答案与统计
 
-| 统计功能  | 功能特点            |
-| ----- | --------------- |
-| 成绩记录  | 详细记录每次测试成绩和用时   |
-| 数据可视化 | 图表展示学习进度和趋势     |
-| 多维度分析 | 准确率、正确数等多指标展示   |
-| 历史管理  | 自动保存和加载历史记录     |
-| 词库分析  | 按词库分组统计学习情况     |
-| 统计导出  | 支持导出 CSV 格式统计数据 |
+### 句子精听
 
-### 语音合成技术
+1. 进入「素材库」，导入本地音视频
+2. 首次使用：在「设置」页面下载 Whisper 转写模型（从魔搭社区 ModelScope 一键下载，显示速度与剩余时间；也可指定本地 ggml 模型文件）
+3. 等待本地转写切句完成
+4. 开始「泛听 → 精听 → 复习」三阶段训练
 
-| 技术特性         | 技术说明                        |
-| ------------ | --------------------------- |
-| Windows SAPI | 使用系统内置语音引擎，稳定可靠             |
-| Windows TTS  | 支持 Windows 11 24H2+ 高质量语音合成 |
-| 语音试听         | 可预览不同语音效果，选择最适合的发音          |
-| 离线可用         | 无需网络连接，随时随地使用               |
-| 智能检测         | 自动检测系统版本并选择最佳语音引擎           |
+### 快捷键（听写测试中）
 
-### 智能听写模式
+| 快捷键 | 功能 |
+| ------ | ---- |
+| 空格键 | 重复朗读当前单词 |
+| ← / → | 上一个 / 下一个单词 |
+| ESC | 暂停 / 继续 |
 
-| 模式类型 | 使用场景          |
-| ---- | ------------- |
-| 纸笔模式 | 传统听写练习，适合课堂环境 |
-| 在线模式 | 边听边输入，实时核对结果  |
-| 灵活切换 | 多种模式间无缝切换     |
+---
 
-### 数据安全与隐私
+## 构建与开发
 
-| 安全特性 | 功能说明             |
-| ---- | ---------------- |
-| 用户账户 | 支持多用户管理和密码保护     |
-| 本地存储 | 所有数据默认保存在本地，无需网络 |
-| 隐私控制 | 完全控制是否允许数据收集和云同步 |
-| 数据加密 | 敏感数据加密存储，保护隐私    |
+```bash
+git clone https://github.com/dongle-china/English-Listen-Winui.git
+cd English-Listen-Winui
+dotnet build English-Listen-WinUI.csproj -c Debug -p:Platform=x64
+```
 
-### 应用内更新
+或在 Visual Studio 中打开 `English-Listen-WinUI.slnx`。要求 .NET 11 SDK 与 Windows App SDK 工作负载。
 
-| 更新特性 | 功能说明             |
-| ---- | ---------------- |
-| 自动检查 | 支持检查最新版本更新       |
-| 版本比较 | 智能比较版本号，判断是否需要更新 |
-| 下载安装 | 自动下载并启动安装程序      |
-| 发布说明 | 显示更新内容和改进说明      |
+技术栈：C# / .NET 11（`net11.0-windows10.0.19041`，单项目 MSIX）、Windows App SDK 1.8、Whisper.net 1.9、NAudio、System.Speech / Windows TTS 双语音引擎、Newtonsoft.Json。
 
-## 快速入门指南
+架构分层：`Views/`（XAML 页面）→ `ViewModels/`（状态编排）→ `Services/`（转写 / 语音 / 同步 / 统计等接口化可插拔服务）→ `Models/`（数据模型）。
 
-### 图形界面版使用流程
+---
 
-1. **准备阶段**：在单词列表中添加你要练习的单词
-2. **开始训练**：点击"开始听写测试"，软件会自动朗读单词
-3. **听写记录**：在纸上写下听到的单词（纸笔模式）或直接输入（在线模式）
-4. **核对答案**：测试结束后可查看标准答案和成绩统计
-5. **反复练习**：针对错误单词进行重点训练
+## 文档
 
-### 快捷键操作
+- **[PRIVACY.md](PRIVACY.md)** — 隐私政策：所有学习数据默认保存在本地。
+- **[LICENSE.txt](LICENSE.txt)** — MIT 许可证全文。
+- 应用内「帮助」页面 — 各功能的完整使用教程。
 
-在听写测试界面中，您可以使用以下快捷键：
+---
 
-| 快捷键  | 功能描述     |
-| ---- | -------- |
-| 空格键  | 重复朗读当前单词 |
-| 左方向键 | 返回上一个单词  |
-| 右方向键 | 跳转到下一个单词 |
-| ESC键 | 暂停/继续测试  |
+## 项目活跃度与贡献者
 
-#### 使用方法
+### 活跃度徽章
 
-1. 开始听写测试后，无需点击任何按钮
-2. 使用键盘快捷键即可控制播放：
-   - 按空格键重新听当前单词发音
-   - 按左方向键返回上一个单词
-   - 按右方向键跳到下一个单词
-   - 按ESC键暂停或继续测试
+[![GitHub contributors](https://img.shields.io/github/contributors/dongle-china/English-Listen-Winui?style=flat&label=总贡献者)](https://github.com/dongle-china/English-Listen-Winui/graphs/contributors)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dongle-china/English-Listen-Winui?style=flat&label=月均提交)](https://github.com/dongle-china/English-Listen-Winui/graphs/contributors)
+[![GitHub last commit](https://img.shields.io/github/last-commit/dongle-china/English-Listen-Winui?style=flat&label=最近提交)](https://github.com/dongle-china/English-Listen-Winui/commits/main)
 
-## 技术架构
+### 贡献者图谱
 
-### 核心技术栈
+<div align="center">
+<a href="https://github.com/dongle-china/English-Listen-Winui/graphs/contributors" target="_blank">
+<img src="https://contrib.rocks/image?repo=dongle-china/English-Listen-Winui" alt="Contributors" />
+</a>
+</div>
 
-| 技术组件            | 版本要求      | 说明                 |
-| --------------- | --------- | ------------------ |
-| 编程语言            | C# 13     | 现代化编程语言            |
-| GUI框架           | WinUI3    | Windows 原生界面框架     |
-| 运行时             | .NET 10.0 | 跨平台运行时             |
-| Windows App SDK | 1.8+      | Windows 应用开发 SDK   |
-| 构建系统            | MSBuild   | Visual Studio 构建工具 |
+## Star History
 
-### 项目架构
+<a href="https://www.star-history.com/?repos=dongle-china%2FEnglish-Listen-Winui&type=timeline">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=dongle-china%2FEnglish-Listen-Winui&type=timeline&theme=dark" />
+<source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=dongle-china%2FEnglish-Listen-Winui&type=timeline" />
+<img alt="Star History Chart" src="https://api.star-history.com/chart?repos=dongle-china%2FEnglish-Listen-Winui&type=timeline" />
+</picture>
+</a>
 
-项目采用分层架构设计：
+---
 
-- **Views 层**：WinUI3 XAML 界面，包含主页、词库页、测试页、统计页等
-- **ViewModels 层**：MVVM 模式的视图模型，处理界面逻辑
-- **Services 层**：核心服务，包括语音服务、设置服务、统计服务等
-- **Native Backend**：C++ 原生后端，处理听写逻辑和性能敏感操作
-- **Models 层**：数据模型，定义用户数据、单词、语音信息等
+## 许可
 
-### 系统要求
-
-| 环境要求 | 最低配置                | 推荐配置              |
-| ---- | ------------------- | ----------------- |
-| 操作系统 | Windows 10 版本 17763 | Windows 11 24H2+  |
-| 处理器  | 英特尔 奔腾 金牌 G5400     | 英特尔 酷睿 i5 或更高     |
-| 内存   | 2GB RAM             | 4GB RAM 或更高       |
-| 存储空间 | 100MB               | 100MB             |
-| 运行时  | .NET 10.0 Runtime   | .NET 10.0 Runtime |
-
-### 文件结构
-
-应用的所有文件（包括配置文件和词库文件）都存储在软件安装目录中：
-
-- `config/settings.json` - 主要设置文件
-- `config/wordlist_groups.ini` - 词库分组配置
-- `config/test_history.json` - 测试历史记录
-- `wordlist/` 目录 - 词库文件存储目录
-
-## 开发指南
-
-### 从源码编译
-
-如果您希望从源码编译或进行开发：
-
-1. 克隆项目到本地：
-   ```bash
-   git clone https://github.com/dongzheyu/English-Listen-WinUI.git
-   ```
-2. 使用 Visual Studio 2026 打开解决方案文件 `English-Listen-WinUI.slnx`
-3. 恢复 NuGet 包依赖：
-   ```bash
-   ```
-   <br />
-   ```bash
-   ```
-4. 编译并运行项目：
-   ```bash
-   dotnet build
-   dotnet run
-   ```
-
-### 开发环境要求
-
-- Visual Studio 2026（包含 C++ 和 .NET 桌面开发工作负载）
-- Windows SDK 10.0.26100 或更高版本
-- CMake 3.16+（用于编译 Native Backend）
-- .NET 10.0 SDK
-
-## 项目信息
-
-### 版本历史
-
-当前版本：v1.1.21.0（WinUI3 版本）
-
-查看[更新记录](update.md)了解最新功能和改进。
-
-### 开发计划
-
-查看[TODO 清单](todo.md)了解未来功能规划和开发进度。
-
-### 代码仓库
-
-- **GitHub**: <https://github.com/dongzheyu/English-Listen-WinUI>
-- **Gitee**: <https://gitee.com/jetcpp/English-Listen-WinUI>
-
-### 开发者
-
-本项目由dongle个人开发维护，致力于为用户提供优质的语言学习工具。
-
-### 许可协议
-
-本软件采用 MIT 许可证发布，详情请参阅 [LICENSE.txt](LICENSE.txt) 文件。
-
-### 隐私政策
-
-本软件重视用户隐私，所有数据默认存储在本地。用户可以完全控制是否允许数据收集和云同步。详情请参阅 [PRIVACY.md](PRIVACY.md)。
-
-***
-
-让英语学习变得更简单、更高效！
+[MIT License](LICENSE.txt)（MIT）

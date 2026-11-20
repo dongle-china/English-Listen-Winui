@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Media.Core;
@@ -28,6 +29,7 @@ namespace English_Listen_WinUI.Views
         private BaiduTranslateService _translateService;
         private MainViewModel? _viewModel;
         private SpeechSynthesizer? _winRtSynthesizer;
+        private CancellationTokenSource? _modelDownloadCts;
 
         public SettingsPage()
         {
@@ -58,13 +60,15 @@ namespace English_Listen_WinUI.Views
                 LoadSettings();
 
                 var v = Package.Current.Id.Version;
-                VersionLabel.Text = $"当前版本: v{v.Major}.{v.Minor}.{v.Build}";
+                VersionLabel.Text = $"当前版本: v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
 
                 // 初始化 MediaPlayer（非 WinRT 语音不播放）
                 _mediaPlayer = new MediaPlayer();
                 TtsMediaPlayerElement.SetMediaPlayer(_mediaPlayer);
 
                 _isInitializing = false;
+
+                RefreshWhisperModelStatus();
 
                 // 加载当前引擎的语音列表（EngineComboBox_SelectionChanged 不会在 _isInitializing=true 时执行）
                 LoadVoicesForCurrentEngine();
@@ -77,6 +81,97 @@ namespace English_Listen_WinUI.Views
                 Debug.WriteLine($"SettingsPage加载失败: {ex.Message}");
                 ShowError("页面加载失败", $"设置页面加载失败: {ex.Message}");
             }
+        }
+
+        private void RefreshWhisperModelStatus()
+        {
+            var path = _viewModel?.Settings?.Settings?.WhisperModelPath;
+            WhisperModelStatusText.Text = string.IsNullOrWhiteSpace(path)
+                ? "当前模型：未配置"
+                : $"当前模型：{path}";
+        }
+
+        private async void DownloadModelButton_Click(object sender, RoutedEventArgs e)
+        {
+            var index = ModelDownloadComboBox.SelectedIndex;
+            if (index < 0 || index >= ModelDownloadService.Models.Length) return;
+            var model = ModelDownloadService.Models[index];
+
+            string appDataPath;
+            try { appDataPath = ApplicationData.Current.LocalFolder.Path; }
+            catch { appDataPath = AppContext.BaseDirectory; }
+            var destPath = Path.Combine(appDataPath, "models", model.FileName);
+
+            _modelDownloadCts = new CancellationTokenSource();
+            DownloadModelButton.IsEnabled = false;
+            ModelDownloadComboBox.IsEnabled = false;
+            CancelDownloadButton.Visibility = Visibility.Visible;
+            ModelDownloadProgress.Visibility = Visibility.Visible;
+            ModelDownloadProgress.Value = 0;
+            ModelDownloadStatusText.Visibility = Visibility.Visible;
+            ModelDownloadStatusText.Text = $"正在连接魔搭社区下载 {model.FileName}（{model.SizeText}）...";
+
+            var progress = new Progress<ModelDownloadProgress>(p =>
+            {
+                if (p.TotalBytes > 0)
+                {
+                    ModelDownloadProgress.Value = (double)p.BytesReceived / p.TotalBytes * 100;
+                }
+                ModelDownloadStatusText.Text =
+                    $"已下载 {FormatBytes(p.BytesReceived)} / {FormatBytes(p.TotalBytes)}" +
+                    $" · {FormatBytes((long)p.SpeedBytesPerSec)}/s · 剩余 {FormatRemaining(p.Remaining)}";
+            });
+
+            try
+            {
+                await ModelDownloadService.DownloadAsync(model, destPath, progress, _modelDownloadCts.Token);
+
+                _viewModel!.Settings!.Settings.WhisperModelPath = destPath;
+                await _viewModel.Settings.SaveSettingsAsync();
+
+                ModelDownloadProgress.Value = 100;
+                ModelDownloadStatusText.Text = $"下载完成，已启用 {model.FileName}。";
+                RefreshWhisperModelStatus();
+            }
+            catch (OperationCanceledException)
+            {
+                ModelDownloadStatusText.Text = "已取消下载。";
+            }
+            catch (Exception ex)
+            {
+                ModelDownloadStatusText.Text = $"下载失败：{ex.Message}";
+            }
+            finally
+            {
+                DownloadModelButton.IsEnabled = true;
+                ModelDownloadComboBox.IsEnabled = true;
+                CancelDownloadButton.Visibility = Visibility.Collapsed;
+                _modelDownloadCts?.Dispose();
+                _modelDownloadCts = null;
+            }
+        }
+
+        private void CancelDownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            _modelDownloadCts?.Cancel();
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes >= 1L << 30) return $"{bytes / (double)(1L << 30):0.##} GB";
+            if (bytes >= 1L << 20) return $"{bytes / (double)(1L << 20):0.#} MB";
+            if (bytes >= 1L << 10) return $"{bytes / (double)(1L << 10):0.#} KB";
+            return $"{bytes} B";
+        }
+
+        private static string FormatRemaining(TimeSpan remaining)
+        {
+            if (remaining <= TimeSpan.Zero) return "计算中...";
+            if (remaining.TotalMinutes >= 1)
+            {
+                return $"{(int)remaining.TotalMinutes} 分 {remaining.Seconds} 秒";
+            }
+            return $"{remaining.Seconds} 秒";
         }
 
         private void LoadSettings()

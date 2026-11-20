@@ -90,13 +90,9 @@ jobs:
           $manifest = $manifest -replace '(?<![A-Za-z])Version="[\d.]+"', "Version=""$version"""
           Set-Content Package.appxmanifest -Value $manifest -NoNewline -Encoding utf8
 
-          $csproj = Get-Content English-Listen-WinUI.csproj -Raw
-          $csproj = $csproj -replace '<Version>[\d.]+</Version>', "<Version>$version</Version>"
-          Set-Content English-Listen-WinUI.csproj -Value $csproj -NoNewline -Encoding utf8
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Package.appxmanifest English-Listen-WinUI.csproj
+          git add Package.appxmanifest
           git diff --cached --quiet
           $hasChanges = ($LASTEXITCODE -ne 0)
           if ($hasChanges) {

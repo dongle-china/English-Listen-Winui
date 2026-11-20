@@ -118,6 +118,50 @@
                         BorderThickness="1"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                     <StackPanel>
+                        <TextBlock Text="Whisper 转写模型"
+                                   Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,0,0,5" />
+                        <TextBlock Text="用于素材库音视频本地转写，全程离线运行。模型从魔搭社区 (ModelScope) 下载，下载后也可在素材库页改选其他本地模型文件。"
+                                   Style="{ThemeResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock x:Name="WhisperModelStatusText"
+                                   Text="当前模型：未配置"
+                                   Style="{ThemeResource BodyTextBlockStyle}"
+                                   TextWrapping="Wrap" Margin="0,10,0,0" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+                            <ComboBox x:Name="ModelDownloadComboBox" Width="300" SelectedIndex="1">
+                                <ComboBoxItem Content="tiny · 78 MB（最快，精度较低）" />
+                                <ComboBoxItem Content="base · 148 MB（推荐，速度与精度均衡）" />
+                                <ComboBoxItem Content="small · 488 MB（更高精度）" />
+                                <ComboBoxItem Content="medium · 1.5 GB（最高精度，速度较慢）" />
+                            </ComboBox>
+                            <Button x:Name="DownloadModelButton"
+                                    Content="下载模型"
+                                    Style="{ThemeResource AccentButtonStyle}"
+                                    Click="DownloadModelButton_Click" />
+                            <Button x:Name="CancelDownloadButton"
+                                    Content="取消"
+                                    Visibility="Collapsed"
+                                    Click="CancelDownloadButton_Click" />
+                        </StackPanel>
+
+                        <ProgressBar x:Name="ModelDownloadProgress"
+                                     Visibility="Collapsed"
+                                     Margin="0,12,0,0" />
+                        <TextBlock x:Name="ModelDownloadStatusText"
+                                   Visibility="Collapsed"
+                                   Margin="0,4,0,0"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="8" Padding="20"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel>
                         <TextBlock Text="百度翻译API设置"
                                    Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,0,0,15" />
 

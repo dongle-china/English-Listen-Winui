@@ -30,7 +30,7 @@ jobs:
       bump_sha: ${{ steps.bump.outputs.sha }}
     steps:
       - name: 检出 main（始终基于 main 构建）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
 
@@ -117,7 +117,7 @@ jobs:
         signing: [unsigned, signed]
     steps:
       - name: 检出（版本提升后的提交）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.bump_sha }}
 
@@ -181,7 +181,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: 检出 main（含完整历史，用于生成 Release Notes）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0

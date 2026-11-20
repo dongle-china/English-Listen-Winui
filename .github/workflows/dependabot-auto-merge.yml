@@ -1,0 +1,27 @@
+name: Dependabot automerge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Enable auto-merge for security and github-actions updates
+        # nuget 版本更新保留人工审查；安全更新与 github-actions 更新自动合并。
+        # 分支保护要求 build 检查通过，gh pr merge --auto 会等 CI 构建过后才合并。
+        if: steps.metadata.outputs.security-update == 'true' || steps.metadata.outputs.package-ecosystem == 'github-actions'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

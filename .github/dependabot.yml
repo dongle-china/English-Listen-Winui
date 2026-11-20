@@ -4,7 +4,20 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # 同类型合并为一个 PR，最多 3 个开放 PR
+    open-pull-requests-limit: 3
+    groups:
+      nuget-dependencies:
+        applies-to: version-updates
+        patterns:
+          - '*'
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      actions-dependencies:
+        applies-to: version-updates
+        patterns:
+          - '*'

@@ -1,0 +1,267 @@
+name: Release
+
+# 触发方式：推 v* tag，或手动运行指定版本号。
+# 版本号低于当前版本或对应 Release 已存在时自动跳过。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '包版本（如 1.1.27.0，必须高于当前版本）'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: windows-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      bump_sha: ${{ steps.bump.outputs.sha }}
+    steps:
+      - name: 检出 main（始终基于 main 构建）
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 解析版本并检查是否发布
+        id: check
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:EVENT -eq 'workflow_dispatch') {
+            $raw = $env:INPUT_VERSION.Trim()
+            $tag = "v$raw"
+          } else {
+            $raw = $env:REF_NAME
+            $tag = $raw
+          }
+          $parts = @($raw.TrimStart('v').Split('.'))
+          if ($parts.Count -lt 2 -or $parts.Count -gt 4) { Write-Error "无法解析版本号: $raw"; exit 1 }
+          while ($parts.Count -lt 4) { $parts += '0' }
+          $version = ($parts[0..3] -join '.')
+          try { $null = [version]$version } catch { Write-Error "非法版本号: $raw"; exit 1 }
+
+          $manifest = Get-Content Package.appxmanifest -Raw
+          $current = [regex]::Match($manifest, '(?<![A-Za-z])Version="([\d.]+)"').Groups[1].Value
+          if (-not $current) { Write-Error '未能从 Package.appxmanifest 解析当前版本'; exit 1 }
+
+          gh release view $tag *> $null
+          $releaseExists = ($LASTEXITCODE -eq 0)
+
+          $skip = $false
+          if ($releaseExists) {
+            Write-Host "跳过：Release $tag 已存在"
+            $skip = $true
+          } elseif ([version]$version -lt [version]$current) {
+            Write-Host "跳过：版本 $version 不高于当前版本 $current"
+            $skip = $true
+          } else {
+            Write-Host "发布 $version（当前 $current）"
+          }
+
+          "proceed=$(-not $skip)" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: 提升版本号并推送
+        id: bump
+        if: steps.check.outputs.proceed == 'true'
+        shell: pwsh
+        run: |
+          $version = '${{ steps.check.outputs.version }}'
+
+          $manifest = Get-Content Package.appxmanifest -Raw
+          $manifest = $manifest -replace '(?<![A-Za-z])Version="[\d.]+"', "Version=""$version"""
+          Set-Content Package.appxmanifest -Value $manifest -NoNewline -Encoding utf8
+
+          $csproj = Get-Content English-Listen-WinUI.csproj -Raw
+          $csproj = $csproj -replace '<Version>[\d.]+</Version>', "<Version>$version</Version>"
+          Set-Content English-Listen-WinUI.csproj -Value $csproj -NoNewline -Encoding utf8
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Package.appxmanifest English-Listen-WinUI.csproj
+          git diff --cached --quiet
+          $hasChanges = ($LASTEXITCODE -ne 0)
+          if ($hasChanges) {
+            git commit -m "chore: bump version to $version"
+            git push origin main
+          } else {
+            Write-Host "版本已是 $version，无需提交（重试发布）"
+          }
+          $sha = (git rev-parse HEAD).Trim()
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.proceed == 'true'
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x86, x64, ARM64]
+        signing: [unsigned, signed]
+    steps:
+      - name: 检出（版本提升后的提交）
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.bump_sha }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: 缓存 NuGet 包
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: 导入签名证书
+        id: cert
+        if: matrix.signing == 'signed'
+        shell: pwsh
+        env:
+          DEVCERT_PASSWORD: ${{ secrets.DEVCERT_PASSWORD }}
+        run: |
+          $pass = ConvertTo-SecureString $env:DEVCERT_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath devcert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+
+      - name: 构建
+        shell: pwsh
+        env:
+          DEVCERT_PASSWORD: ${{ secrets.DEVCERT_PASSWORD }}
+        run: |
+          $buildArgs = @('build', 'English-Listen-WinUI.csproj', '-c', 'Release', "-p:Platform=${{ matrix.platform }}")
+          if ('${{ matrix.signing }}' -eq 'signed') {
+            $buildArgs += @(
+              '-p:AppxPackageSigningEnabled=true',
+              '-p:PackageCertificateKeyFile=devcert.pfx',
+              "-p:PackageCertificatePassword=$env:DEVCERT_PASSWORD",
+              "-p:PackageCertificateThumbprint=${{ steps.cert.outputs.thumbprint }}"
+            )
+          }
+          & dotnet @buildArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: 收集产物
+        shell: pwsh
+        run: |
+          $bundle = Get-ChildItem -Recurse -Filter *.msixbundle | Select-Object -First 1
+          if (-not $bundle) { Write-Error '未找到 msixbundle'; exit 1 }
+          $dest = "English-Listen-WinUI_${{ needs.prepare.outputs.version }}_${{ matrix.platform }}_${{ matrix.signing }}.msixbundle"
+          Copy-Item $bundle.FullName $dest
+          Write-Host "产物: $dest ($([math]::Round($bundle.Length / 1MB, 1)) MB)"
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.platform }}-${{ matrix.signing }}
+          path: '*.msixbundle'
+
+  publish:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.proceed == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: 检出 main（含完整历史，用于生成 Release Notes）
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 下载产物
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: 导出公钥证书
+        shell: pwsh
+        env:
+          DEVCERT_PASSWORD: ${{ secrets.DEVCERT_PASSWORD }}
+        run: |
+          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("$PWD/devcert.pfx", $env:DEVCERT_PASSWORD)
+          [IO.File]::WriteAllBytes("$PWD/devcert.cer", $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+          Write-Host "devcert.cer 已导出（$($cert.Thumbprint)）"
+
+      - name: 生成 Release Notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          $version = '${{ needs.prepare.outputs.version }}'
+          git fetch --tags --force
+          $cur = [version]$version
+          $prev = @(git tag --list 'v*') |
+            Where-Object { $_ -match '^v\d+(\.\d+){1,3}$' } |
+            ForEach-Object { [version]$_.TrimStart('v') } |
+            Sort-Object -Unique |
+            Where-Object { $_ -lt $cur } |
+            Select-Object -Last 1
+
+          if ($prev) {
+            $commits = @(git log "v$($prev.ToString())..HEAD" --pretty=format:'%H%x09%s%x09%an')
+            Write-Host "变更范围: v$($prev.ToString())..HEAD"
+          } else {
+            $commits = @(git log --pretty=format:'%H%x09%s%x09%an')
+            Write-Host '无历史 tag，收录全部提交'
+          }
+
+          $lines = New-Object System.Collections.Generic.List[string]
+          $lines.Add("## $version")
+          $lines.Add('')
+          $contributors = [ordered]@{}
+          foreach ($c in $commits) {
+            $sha, $subject, $author = $c -split "`t", 3
+            if ($subject -like 'chore: bump version to*') { continue }
+            $ghLogin = & gh api "repos/$env:REPO/commits/$sha" --jq '.author.login' 2>$null
+            $display = if ($ghLogin) { "@$ghLogin" } else { $author }
+            $short = $sha.Substring(0, 7)
+            $lines.Add("* $subject by $display in [``$short``](https://github.com/$env:REPO/commit/$sha)")
+            if (-not $contributors.Contains($display)) { $contributors[$display] = New-Object System.Collections.Generic.List[string] }
+            $contributors[$display].Add($short)
+          }
+          $lines.Add('')
+          $lines.Add('## 贡献者')
+          $lines.Add('')
+          foreach ($k in $contributors.Keys) {
+            $shas = ($contributors[$k] | ForEach-Object { "``$_``" }) -join ', '
+            $lines.Add("* $k: $shas")
+          }
+          $notes = $lines -join "`r`n"
+          Set-Content notes.md -Value $notes -Encoding utf8
+          Write-Host $notes
+
+      - name: 发布 Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ needs.prepare.outputs.tag }}'
+          $version = '${{ needs.prepare.outputs.version }}'
+          $files = @(Get-ChildItem dist -Filter *.msixbundle | ForEach-Object { $_.FullName })
+          $files += "$PWD\devcert.cer"
+          $tagExists = (git ls-remote --tags origin "refs/tags/$tag") -ne $null
+          if ($tagExists) {
+            gh release create $tag --title "v$version" --notes-file notes.md @files
+          } else {
+            gh release create $tag --target (git rev-parse HEAD).Trim() --title "v$version" --notes-file notes.md @files
+          }

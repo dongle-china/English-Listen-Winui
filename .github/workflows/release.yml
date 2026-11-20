@@ -132,6 +132,14 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      - name: 写入兑换码配置（机密不入库，从 secret 生成）
+        shell: pwsh
+        env:
+          REDEEM_CODES: ${{ secrets.REDEEM_CODES }}
+        run: |
+          if (-not $env:REDEEM_CODES) { Write-Error '缺少 REDEEM_CODES secret，发布的包必须包含兑换码'; exit 1 }
+          Set-Content Config\redeem_codes.json -Value $env:REDEEM_CODES -Encoding utf8 -NoNewline
+
       - name: 导入签名证书
         id: cert
         if: matrix.signing == 'signed'

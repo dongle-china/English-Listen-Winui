@@ -24,6 +24,17 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
+      - name: 写入兑换码配置（机密不入库，从 secret 生成；fork PR 无 secret 时用空占位）
+        shell: pwsh
+        env:
+          REDEEM_CODES: ${{ secrets.REDEEM_CODES }}
+        run: |
+          if (-not $env:REDEEM_CODES) {
+            '{"RedeemCodes":[]}' | Set-Content Config\redeem_codes.json -Encoding utf8
+          } else {
+            Set-Content Config\redeem_codes.json -Value $env:REDEEM_CODES -Encoding utf8 -NoNewline
+          }
+
       - name: 构建（Debug x64，CI 不签名）
         shell: pwsh
         run: |

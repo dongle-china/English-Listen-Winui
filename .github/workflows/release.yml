@@ -1,7 +1,8 @@
 name: Release
 
-# 触发方式：推 v* tag，或手动运行指定版本号。
-# 版本号低于当前版本或对应 Release 已存在时自动跳过。
+# Triggers: push a v* tag, or run manually with an explicit version.
+# Skips automatically when the version is not higher than the current one
+# or the corresponding Release already exists.
 on:
   push:
     tags:
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '包版本（如 1.1.27.0，必须高于当前版本）'
+        description: 'Package version (e.g. 1.1.27.0, must be higher than the current version)'
         required: true
         type: string
 
@@ -29,12 +30,12 @@ jobs:
       tag: ${{ steps.check.outputs.tag }}
       bump_sha: ${{ steps.bump.outputs.sha }}
     steps:
-      - name: 检出 main（始终基于 main 构建）
+      - name: Check out main (releases are always built from main)
         uses: actions/checkout@v7
         with:
           ref: main
 
-      - name: 解析版本并检查是否发布
+      - name: Resolve version and decide whether to publish
         id: check
         shell: pwsh
         env:
@@ -51,34 +52,34 @@ jobs:
             $tag = $raw
           }
           $parts = @($raw.TrimStart('v').Split('.'))
-          if ($parts.Count -lt 2 -or $parts.Count -gt 4) { Write-Error "无法解析版本号: $raw"; exit 1 }
+          if ($parts.Count -lt 2 -or $parts.Count -gt 4) { Write-Error "Cannot parse version: $raw"; exit 1 }
           while ($parts.Count -lt 4) { $parts += '0' }
           $version = ($parts[0..3] -join '.')
-          try { $null = [version]$version } catch { Write-Error "非法版本号: $raw"; exit 1 }
+          try { $null = [version]$version } catch { Write-Error "Invalid version: $raw"; exit 1 }
 
           $manifest = Get-Content Package.appxmanifest -Raw
           $current = [regex]::Match($manifest, '(?<![A-Za-z])Version="([\d.]+)"').Groups[1].Value
-          if (-not $current) { Write-Error '未能从 Package.appxmanifest 解析当前版本'; exit 1 }
+          if (-not $current) { Write-Error 'Failed to parse the current version from Package.appxmanifest'; exit 1 }
 
           gh release view $tag *> $null
           $releaseExists = ($LASTEXITCODE -eq 0)
 
           $skip = $false
           if ($releaseExists) {
-            Write-Host "跳过：Release $tag 已存在"
+            Write-Host "Skip: Release $tag already exists"
             $skip = $true
           } elseif ([version]$version -lt [version]$current) {
-            Write-Host "跳过：版本 $version 不高于当前版本 $current"
+            Write-Host "Skip: version $version is not higher than the current version $current"
             $skip = $true
           } else {
-            Write-Host "发布 $version（当前 $current）"
+            Write-Host "Publishing $version (current: $current)"
           }
 
           "proceed=$(-not $skip)" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
-      - name: 提升版本号并推送
+      - name: Bump version and push
         id: bump
         if: steps.check.outputs.proceed == 'true'
         shell: pwsh
@@ -102,7 +103,7 @@ jobs:
             git commit -m "chore: bump version to $version"
             git push origin main
           } else {
-            Write-Host "版本已是 $version，无需提交（重试发布）"
+            Write-Host "Version is already $version, nothing to commit (release retry)"
           }
           $sha = (git rev-parse HEAD).Trim()
           "sha=$sha" >> $env:GITHUB_OUTPUT
@@ -116,7 +117,7 @@ jobs:
         platform: [x86, x64, ARM64]
         signing: [unsigned, signed]
     steps:
-      - name: 检出（版本提升后的提交）
+      - name: Check out (the version-bumped commit)
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.bump_sha }}
@@ -125,22 +126,22 @@ jobs:
         with:
           dotnet-version: '11.0.x'
 
-      - name: 缓存 NuGet 包
+      - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: 写入兑换码配置（机密不入库，从 secret 生成）
+      - name: Write redeem codes config (generated from the secret; the secret stays out of the repo)
         shell: pwsh
         env:
           REDEEM_CODES: ${{ secrets.REDEEM_CODES }}
         run: |
-          if (-not $env:REDEEM_CODES) { Write-Error '缺少 REDEEM_CODES secret，发布的包必须包含兑换码'; exit 1 }
+          if (-not $env:REDEEM_CODES) { Write-Error 'Missing REDEEM_CODES secret; published packages must contain the redeem codes'; exit 1 }
           Set-Content Config\redeem_codes.json -Value $env:REDEEM_CODES -Encoding utf8 -NoNewline
 
-      - name: 导入签名证书
+      - name: Import signing certificate
         id: cert
         if: matrix.signing == 'signed'
         shell: pwsh
@@ -151,7 +152,7 @@ jobs:
           $cert = Import-PfxCertificate -FilePath devcert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass
           "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
 
-      - name: 构建
+      - name: Build
         shell: pwsh
         env:
           DEVCERT_PASSWORD: ${{ secrets.DEVCERT_PASSWORD }}
@@ -168,16 +169,16 @@ jobs:
           & dotnet @buildArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: 收集产物
+      - name: Collect artifact
         shell: pwsh
         run: |
           $bundle = Get-ChildItem -Recurse -Filter *.msixbundle | Select-Object -First 1
-          if (-not $bundle) { Write-Error '未找到 msixbundle'; exit 1 }
+          if (-not $bundle) { Write-Error 'No msixbundle found'; exit 1 }
           $dest = "English-Listen-WinUI_${{ needs.prepare.outputs.version }}_${{ matrix.platform }}_${{ matrix.signing }}.msixbundle"
           Copy-Item $bundle.FullName $dest
-          Write-Host "产物: $dest ($([math]::Round($bundle.Length / 1MB, 1)) MB)"
+          Write-Host "Artifact: $dest ($([math]::Round($bundle.Length / 1MB, 1)) MB)"
 
-      - name: 上传产物
+      - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: bundle-${{ matrix.platform }}-${{ matrix.signing }}
@@ -188,28 +189,28 @@ jobs:
     if: needs.prepare.outputs.proceed == 'true'
     runs-on: windows-latest
     steps:
-      - name: 检出 main（含完整历史，用于生成 Release Notes）
+      - name: Check out main (full history, used to generate the release notes)
         uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
 
-      - name: 下载产物
+      - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
 
-      - name: 导出公钥证书
+      - name: Export public key certificate
         shell: pwsh
         env:
           DEVCERT_PASSWORD: ${{ secrets.DEVCERT_PASSWORD }}
         run: |
           $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("$PWD/devcert.pfx", $env:DEVCERT_PASSWORD)
           [IO.File]::WriteAllBytes("$PWD/devcert.cer", $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-          Write-Host "devcert.cer 已导出（$($cert.Thumbprint)）"
+          Write-Host "devcert.cer exported ($($cert.Thumbprint))"
 
-      - name: 生成 Release Notes
+      - name: Generate release notes
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -227,10 +228,10 @@ jobs:
 
           if ($prev) {
             $commits = @(git log "v$($prev.ToString())..HEAD" --pretty=format:'%H%x09%s%x09%an')
-            Write-Host "变更范围: v$($prev.ToString())..HEAD"
+            Write-Host "Change range: v$($prev.ToString())..HEAD"
           } else {
             $commits = @(git log --pretty=format:'%H%x09%s%x09%an')
-            Write-Host '无历史 tag，收录全部提交'
+            Write-Host 'No previous tag, including all commits'
           }
 
           $lines = New-Object System.Collections.Generic.List[string]
@@ -248,7 +249,7 @@ jobs:
             $contributors[$display].Add($short)
           }
           $lines.Add('')
-          $lines.Add('## 贡献者')
+          $lines.Add('## Contributors')
           $lines.Add('')
           foreach ($k in $contributors.Keys) {
             $shas = ($contributors[$k] | ForEach-Object { "``$_``" }) -join ', '
@@ -258,7 +259,7 @@ jobs:
           Set-Content notes.md -Value $notes -Encoding utf8
           Write-Host $notes
 
-      - name: 发布 Release
+      - name: Publish release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

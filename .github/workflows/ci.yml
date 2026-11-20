@@ -20,14 +20,14 @@ jobs:
         with:
           dotnet-version: '11.0.x'
 
-      - name: 缓存 NuGet 包
+      - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: 写入兑换码配置（机密不入库，从 secret 生成；fork PR 无 secret 时用空占位）
+      - name: Write redeem codes config (secret stays out of the repo; empty placeholder when the secret is missing, e.g. fork PRs)
         shell: pwsh
         env:
           REDEEM_CODES: ${{ secrets.REDEEM_CODES }}
@@ -38,7 +38,7 @@ jobs:
             Set-Content Config\redeem_codes.json -Value $env:REDEEM_CODES -Encoding utf8 -NoNewline
           }
 
-      - name: 构建（Debug x64，CI 不签名）
+      - name: Build (Debug x64, unsigned in CI)
         shell: pwsh
         run: |
           & dotnet build English-Listen-WinUI.csproj -c Debug -p:Platform=x64 -p:AppxPackageSigningEnabled=false

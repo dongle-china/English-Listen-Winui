@@ -4,7 +4,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    # 同类型合并为一个 PR，最多 3 个开放 PR
+    # Group updates of the same type into one PR, max 3 open PRs
     open-pull-requests-limit: 3
     groups:
       nuget-dependencies:

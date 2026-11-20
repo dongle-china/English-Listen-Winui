@@ -18,8 +18,9 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Enable auto-merge for security and github-actions updates
-        # nuget 版本更新保留人工审查；安全更新与 github-actions 更新自动合并。
-        # 分支保护要求 build 检查通过，gh pr merge --auto 会等 CI 构建过后才合并。
+        # nuget version updates keep manual review; security updates and
+        # github-actions updates are merged automatically. Branch protection
+        # requires the build check, and gh pr merge --auto merges only after CI passes.
         if: steps.metadata.outputs.security-update == 'true' || steps.metadata.outputs.package-ecosystem == 'github-actions'
         run: gh pr merge --auto --squash "$PR_URL"
         env:

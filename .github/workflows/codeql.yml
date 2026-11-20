@@ -19,33 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '11.0.x'
-
-      - name: 写入兑换码配置（机密不入库，从 secret 生成；无 secret 时用空占位）
-        shell: pwsh
-        env:
-          REDEEM_CODES: ${{ secrets.REDEEM_CODES }}
-        run: |
-          if (-not $env:REDEEM_CODES) {
-            '{"RedeemCodes":[]}' | Set-Content Config\redeem_codes.json -Encoding utf8
-          } else {
-            Set-Content Config\redeem_codes.json -Value $env:REDEEM_CODES -Encoding utf8 -NoNewline
-          }
-
-      - name: 初始化 CodeQL
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: csharp
+          build-mode: none
 
-      - name: 构建（Release x64，不签名）
-        shell: pwsh
-        run: |
-          & dotnet build English-Listen-WinUI.csproj -c Release -p:Platform=x64
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: 分析
+      - name: Analyze
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:csharp'

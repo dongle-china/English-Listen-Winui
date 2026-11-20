@@ -5,7 +5,8 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>English_Listen_WinUI</RootNamespace>
       <Version>1.1.26.0</Version>
-    <Platforms>x64</Platforms>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <Platforms>x86;x64;ARM64</Platforms>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
@@ -121,15 +122,17 @@
     <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <PublishSingleFile>false</PublishSingleFile>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier Condition="'$(Platform)'=='x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)'=='x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)'=='ARM64'">win-arm64</RuntimeIdentifier>
+    <PlatformTarget>$(Platform)</PlatformTarget>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
-    <!-- Debug: 自动签名 devcert.pfx（winappcli 默认密码 password） -->
+    <!-- Debug: 自动签名 devcert.pfx（密码与 CI secret DEVCERT_PASSWORD 一致，用于本地构建） -->
     <PropertyGroup Condition="'$(Configuration)'=='Debug'">
         <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
         <PackageCertificateKeyFile>devcert.pfx</PackageCertificateKeyFile>
-        <PackageCertificatePassword>password</PackageCertificatePassword>
+        <PackageCertificatePassword>DZY@013520</PackageCertificatePassword>
         <!-- devcert.pfx 对应证书的指纹（已导入 CurrentUser\My，私钥在）。
              WinAppSdkGenerateAppxManifest 任务不带密码参数、无法导入带密码的 pfx，
              会误报 APPX0105/0107；显式给出指纹后它直接从证书存储验证，不再碰 pfx。 -->

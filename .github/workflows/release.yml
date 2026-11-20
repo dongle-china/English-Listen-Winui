@@ -170,7 +170,7 @@ jobs:
           Write-Host "产物: $dest ($([math]::Round($bundle.Length / 1MB, 1)) MB)"
 
       - name: 上传产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bundle-${{ matrix.platform }}-${{ matrix.signing }}
           path: '*.msixbundle'

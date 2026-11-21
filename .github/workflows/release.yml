@@ -39,14 +39,24 @@ jobs:
       - name: Build x86 / x64 / ARM64 (Release, unsigned)
         shell: pwsh
         run: |
-          # 每次 MSIX 打包会清空 _Test 目录，构建完一个架构立即收集
+          # 主包从 bin\<plat>\Release\...\*_<arch>.msix 收集（_Test 目录行为不可靠）
           New-Item -ItemType Directory -Path bundle -Force | Out-Null
           foreach ($plat in 'x86','x64','ARM64') {
             & dotnet build English-Listen-WinUI.csproj -c Release -p:Platform=$plat
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-            $msix = Get-ChildItem AppPackages -Recurse -Filter *.msix
-            if (-not $msix) { throw "no msix produced for $plat" }
-            $msix | Copy-Item -Destination bundle
+            $main = @()
+            foreach ($root in "bin\$plat\Release", 'AppPackages') {
+              # Extension 过滤规避 FindFirstFile 短名把 .msixbundle 误配成 .msix 的怪癖
+              $main = Get-ChildItem $root -Recurse -Filter "*_$plat.msix" -ErrorAction SilentlyContinue |
+                Where-Object { $_.Extension -eq '.msix' -and $_.Name -notmatch 'scale' }
+              if ($main) { break }
+            }
+            if (-not $main) {
+              Get-ChildItem bin, AppPackages -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match '\.msix' } | ForEach-Object { Write-Host $_.FullName }
+              throw "no msix produced for $plat"
+            }
+            $main | Copy-Item -Destination bundle
           }
           $archCount = (Get-ChildItem bundle -Filter *.msix).Count
           if ($archCount -ne 3) { throw "expected 3 msix (x86/x64/ARM64), found $archCount" }

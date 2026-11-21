@@ -62,6 +62,31 @@
                 </Grid>
             </Button>
         </DataTemplate>
+
+        <!-- 复刻 WinUI Gallery 头部外链瓦片：SVG 图标 + 标题 + 描述，点击经系统浏览器打开 -->
+        <DataTemplate x:Key="LinkTileTemplate" x:DataType="local:LinkTileItem">
+            <Button Tag="{x:Bind Url}"
+                    Click="LinkTile_Click"
+                    AutomationProperties.Name="{x:Bind Title}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    MinHeight="140"
+                    Padding="16"
+                    HorizontalContentAlignment="Left"
+                    VerticalContentAlignment="Top"
+                    CornerRadius="{StaticResource OverlayCornerRadius}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <Image Source="{x:Bind Icon}" Width="36" Height="36" HorizontalAlignment="Left" />
+                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock Text="{x:Bind Description}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Button>
+        </DataTemplate>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -86,6 +111,17 @@
                          IsClosable="False" IsOpen="True" />
                 <InfoBar x:Name="AvgAccuracyInfoBar" Title="平均正确率: 0%" Severity="Success"
                          IsClosable="False" IsOpen="True" />
+            </StackPanel>
+
+            <!-- 快速开始（外链瓦片，URL 抄自 WinUI Gallery 头部） -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="快速开始" FontSize="20" FontWeight="SemiBold" />
+                <ItemsRepeater x:Name="LinksRepeater" ItemTemplate="{StaticResource LinkTileTemplate}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="230" MinItemHeight="140"
+                                           MinRowSpacing="12" MinColumnSpacing="12" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
             </StackPanel>
 
             <!-- 功能导航 -->

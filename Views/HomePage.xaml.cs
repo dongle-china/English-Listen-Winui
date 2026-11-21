@@ -3,8 +3,10 @@ using System.Linq;
 using English_Listen_WinUI.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel;
+using Windows.System;
 
 namespace English_Listen_WinUI.Views
 {
@@ -15,6 +17,15 @@ namespace English_Listen_WinUI.Views
         public required string Title { get; init; }
         public required string Subtitle { get; init; }
         public required string PageName { get; init; }
+    }
+
+    /// <summary>主页外链瓦片的数据项（WinUI Gallery 头部链接复刻）。</summary>
+    public sealed class LinkTileItem
+    {
+        public required ImageSource Icon { get; init; }
+        public required string Title { get; init; }
+        public required string Description { get; init; }
+        public required string Url { get; init; }
     }
 
     public sealed partial class HomePage : Page
@@ -32,12 +43,27 @@ namespace English_Listen_WinUI.Views
             new() { Glyph = Symbol.ContactInfo, Title = "关于", Subtitle = "版本信息与开源许可", PageName = "AboutPage" },
         ];
 
+        // 外链瓦片：URL 与描述抄自 WinUI Gallery 头部
+        private static readonly LinkTileItem[] _linkTiles =
+        [
+            new() { Icon = TileIcon("TileWinUI.svg"), Title = "Getting started", Description = "WinUI 入门与详细文档", Url = "https://aka.ms/winui-getstarted" },
+            new() { Icon = TileIcon("TileDesign.svg"), Title = "Design", Description = "Fluent 设计指南与工具包", Url = "https://learn.microsoft.com/windows/apps/design/" },
+            new() { Icon = TileIcon("TileGitHub.svg"), Title = "WinUI on GitHub", Description = "WinUI 源码与问题追踪", Url = "https://github.com/microsoft/microsoft-ui-xaml" },
+            new() { Icon = TileIcon("TileToolkit.svg"), Title = "Community Toolkit", Description = "社区控件与辅助组件库示例", Url = "https://apps.microsoft.com/store/detail/windows-community-toolkit-sample-app/9NBLGGH4TLCQ" },
+            new() { Icon = TileIcon("TileSamples.svg"), Title = "Code samples", Description = "按功能与 API 分类的官方示例", Url = "https://learn.microsoft.com/windows/apps/get-started/samples" },
+            new() { Icon = TileIcon("TileStore.svg"), Title = "Partner Center", Description = "将应用发布到 Microsoft Store", Url = "https://developer.microsoft.com/windows/" },
+        ];
+
+        private static SvgImageSource TileIcon(string file) =>
+            new(new Uri($"ms-appx:///Assets/Tiles/{file}"));
+
         public HomePage()
         {
             this.InitializeComponent();
             _viewModel = App.SharedViewModel!;
             this.DataContext = _viewModel;
             CardsRepeater.ItemsSource = _cards;
+            LinksRepeater.ItemsSource = _linkTiles;
             // ThemeDictionaries 放 ImageSource 会让 XamlCompiler 崩溃，改由代码切换主题插画
             UpdateHeroImage();
             this.ActualThemeChanged += (s, _) => UpdateHeroImage();
@@ -62,6 +88,14 @@ namespace English_Listen_WinUI.Views
                 TotalTestsInfoBar.Title = $"总测试次数: {_viewModel.TestHistory.Count}";
                 var avg = _viewModel.TestHistory.Average(t => t.Accuracy);
                 AvgAccuracyInfoBar.Title = $"平均正确率: {avg:F1}%";
+            }
+        }
+
+        private async void LinkTile_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string url })
+            {
+                await Launcher.LaunchUriAsync(new Uri(url));
             }
         }
 

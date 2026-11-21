@@ -77,6 +77,28 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Assets\HomeHero.png" />
+    <None Remove="Assets\HomeHeroDark.png" />
+    <None Remove="Assets\Tiles\TileWinUI.svg" />
+    <None Remove="Assets\Tiles\TileDesign.svg" />
+    <None Remove="Assets\Tiles\TileGitHub.svg" />
+    <None Remove="Assets\Tiles\TileToolkit.svg" />
+    <None Remove="Assets\Tiles\TileSamples.svg" />
+    <None Remove="Assets\Tiles\TileStore.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\HomeHero.png" />
+    <Content Include="Assets\HomeHeroDark.png" />
+    <Content Include="Assets\Tiles\TileWinUI.svg" />
+    <Content Include="Assets\Tiles\TileDesign.svg" />
+    <Content Include="Assets\Tiles\TileGitHub.svg" />
+    <Content Include="Assets\Tiles\TileToolkit.svg" />
+    <Content Include="Assets\Tiles\TileSamples.svg" />
+    <Content Include="Assets\Tiles\TileStore.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 

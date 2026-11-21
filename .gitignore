@@ -366,10 +366,8 @@ FodyWeavers.xsd
 config/secret.json
 config/redeem_codes.json
 
-# Development certificate
-devcert.pfx
-# devcert.pfx 为公开开发证书（私钥受密码保护，密码在 GitHub secret DEVCERT_PASSWORD），CI 签名需要，故放行入库
-!devcert.pfx
+# devcert.pfx 已入库（公开开发证书，私钥密码在 GitHub secret DEVCERT_PASSWORD，CI 签名用）
+# 通配 *.pfx 仍防止其他证书误提交；已跟踪文件不受 ignore 影响
 
 # JetBrains Rider IDE state
 .idea/

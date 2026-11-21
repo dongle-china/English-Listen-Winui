@@ -323,36 +323,5 @@ namespace English_Listen_WinUI.Services
                 _isPaused = false;
             }
         }
-
-        // ponytail: debug, remove after NaturalVoiceSAPIAdapter detection stable
-        public string[] DumpRawVoiceInfo()
-        {
-            var lines = new List<string>();
-            lock (_synthesizerLock)
-            {
-                if (_synthesizer == null) return lines.ToArray();
-                try
-                {
-                    var installed = _synthesizer.GetInstalledVoices();
-                    foreach (var v in installed)
-                    {
-                        if (v?.VoiceInfo == null) continue;
-                        var info = v.VoiceInfo;
-                        var addInfo = string.Join("; ",
-                            info.AdditionalInfo?.Select(kv => $"{kv.Key}={kv.Value}") ?? Enumerable.Empty<string>());
-                        var isNatural = IsNaturalVoiceId(info.Id);
-                        lines.Add(
-                            $"Name=[{info.Name}] Id=[{info.Id}] Culture=[{info.Culture?.Name}] " +
-                            $"IsNatural={isNatural} AddInfo=[{addInfo}]");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    lines.Add($"Error: {ex.Message}");
-                }
-            }
-
-            return lines.ToArray();
-        }
     }
 }

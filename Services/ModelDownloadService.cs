@@ -12,7 +12,8 @@ namespace English_Listen_WinUI.Services
     public class WhisperModelInfo
     {
         public string FileName { get; init; } = string.Empty;
-        public string DisplayName { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public string Description { get; init; } = string.Empty;
         public string SizeText { get; init; } = string.Empty;
     }
 
@@ -34,13 +35,13 @@ namespace English_Listen_WinUI.Services
         private const string BaseUrl =
             "https://modelscope.cn/models/lihuoo/whisper.cpp-asr-model-collection/resolve/master/";
 
-        /// <summary>标准多语言模型，按精度从低到高排列（下标与设置页下拉框一致）</summary>
+        /// <summary>标准多语言模型，按精度从低到高排列</summary>
         public static readonly WhisperModelInfo[] Models =
         {
-            new() { FileName = "tiny.bin",   DisplayName = "tiny · 最快，精度较低",          SizeText = "78 MB"  },
-            new() { FileName = "base.bin",   DisplayName = "base · 速度与精度均衡（推荐）",  SizeText = "148 MB" },
-            new() { FileName = "small.bin",  DisplayName = "small · 更高精度",               SizeText = "488 MB" },
-            new() { FileName = "medium.bin", DisplayName = "medium · 最高精度，速度较慢",    SizeText = "1.5 GB" },
+            new() { FileName = "tiny.bin",   Name = "tiny",   Description = "最快，精度较低",        SizeText = "78 MB"  },
+            new() { FileName = "base.bin",   Name = "base",   Description = "速度与精度均衡（推荐）", SizeText = "148 MB" },
+            new() { FileName = "small.bin",  Name = "small",  Description = "更高精度，速度适中",     SizeText = "488 MB" },
+            new() { FileName = "medium.bin", Name = "medium", Description = "最高精度，速度较慢",     SizeText = "1.5 GB" },
         };
 
         public static async Task DownloadAsync(
@@ -49,8 +50,23 @@ namespace English_Listen_WinUI.Services
             IProgress<ModelDownloadProgress> progress,
             CancellationToken ct)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-            var tmpPath = destPath + ".downloading";
+            var dir = Path.GetDirectoryName(destPath)!;
+            Directory.CreateDirectory(dir);
+
+            // 清理历史残留的临时文件（可能被杀毒/索引进程短暂占用，忽略删除失败）
+            try
+            {
+                foreach (var stale in Directory.GetFiles(dir, "*.downloading"))
+                {
+                    File.Delete(stale);
+                }
+            }
+            catch { /* 残留文件删除失败不阻塞下载 */ }
+
+            // 每次下载使用唯一临时文件名，避免与残留文件/其他进程句柄冲突
+            var tmpPath = Path.Combine(dir,
+                Path.GetFileNameWithoutExtension(destPath) + "." +
+                Guid.NewGuid().ToString("N")[..8] + ".downloading");
 
             using var http = new HttpClient { Timeout = TimeSpan.FromHours(1) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("English-Listen-WinUI");
@@ -64,7 +80,7 @@ namespace English_Listen_WinUI.Services
 
                 await using var src = await resp.Content.ReadAsStreamAsync(ct);
                 await using var dst = new FileStream(
-                    tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
+                    tmpPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
 
                 var sw = Stopwatch.StartNew();
                 long received = 0;

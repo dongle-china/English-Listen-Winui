@@ -72,9 +72,6 @@ namespace English_Listen_WinUI.Views
 
                 // 加载当前引擎的语音列表（EngineComboBox_SelectionChanged 不会在 _isInitializing=true 时执行）
                 LoadVoicesForCurrentEngine();
-
-                // debug: dump raw SAPI voice info to voice_debug.txt
-                DumpSapiVoiceIds();
             }
             catch (Exception ex)
             {
@@ -85,31 +82,93 @@ namespace English_Listen_WinUI.Views
 
         private void RefreshWhisperModelStatus()
         {
-            var path = _viewModel?.Settings?.Settings?.WhisperModelPath;
-            WhisperModelStatusText.Text = string.IsNullOrWhiteSpace(path)
-                ? "当前模型：未配置"
-                : $"当前模型：{path}";
+            RefreshModelList();
         }
 
-        private async void DownloadModelButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>模型下载目录：用户 AppData（非打包沙盒目录，用户可直接查看管理）</summary>
+        private static string ModelsRoot => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "English-Listen-WinUI", "models");
+
+        private string? _downloadingModel;
+        private bool _isRefreshingModels;
+
+        /// <summary>刷新模型列表与「当前使用模型」下拉框</summary>
+        private void RefreshModelList()
         {
-            var index = ModelDownloadComboBox.SelectedIndex;
-            if (index < 0 || index >= ModelDownloadService.Models.Length) return;
-            var model = ModelDownloadService.Models[index];
+            var items = ModelDownloadService.Models.Select(m =>
+            {
+                var path = Path.Combine(ModelsRoot, m.FileName);
+                return new ModelListItem
+                {
+                    FileName = m.FileName,
+                    Name = m.Name,
+                    Description = m.Description,
+                    SizeText = m.SizeText,
+                    IsDownloaded = File.Exists(path),
+                    IsDownloading = _downloadingModel == m.FileName,
+                };
+            }).ToList();
+            ModelList.ItemsSource = items;
+            RefreshActiveModelComboBox();
+        }
 
-            string appDataPath;
-            try { appDataPath = ApplicationData.Current.LocalFolder.Path; }
-            catch { appDataPath = AppContext.BaseDirectory; }
-            var destPath = Path.Combine(appDataPath, "models", model.FileName);
+        /// <summary>「当前使用模型」下拉框：列出已下载模型，当前路径不在其中且存在时附加显示</summary>
+        private void RefreshActiveModelComboBox()
+        {
+            _isRefreshingModels = true;
+            ActiveModelComboBox.Items.Clear();
 
+            var current = _viewModel?.Settings?.Settings?.WhisperModelPath;
+            var entries = Directory.Exists(ModelsRoot)
+                ? Directory.GetFiles(ModelsRoot, "*.bin").ToList()
+                : new List<string>();
+            if (!string.IsNullOrWhiteSpace(current) &&
+                !entries.Contains(current, StringComparer.OrdinalIgnoreCase) &&
+                File.Exists(current))
+            {
+                entries.Add(current);
+            }
+
+            foreach (var entry in entries)
+            {
+                var item = new ComboBoxItem { Content = Path.GetFileName(entry), Tag = entry };
+                if (string.Equals(entry, current, StringComparison.OrdinalIgnoreCase))
+                {
+                    item.IsSelected = true;
+                }
+                ActiveModelComboBox.Items.Add(item);
+            }
+            if (ActiveModelComboBox.Items.Count == 0)
+            {
+                ActiveModelComboBox.Items.Add(new ComboBoxItem { Content = "未选择", IsSelected = true });
+            }
+            _isRefreshingModels = false;
+        }
+
+        private async void ModelDownload_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: string fileName }) return;
+
+            // 再次点击 = 取消当前下载
+            if (_downloadingModel == fileName)
+            {
+                _modelDownloadCts?.Cancel();
+                return;
+            }
+            if (_downloadingModel != null) return; // 已有下载进行中
+
+            var model = ModelDownloadService.Models.FirstOrDefault(m => m.FileName == fileName);
+            if (model == null) return;
+            var destPath = Path.Combine(ModelsRoot, model.FileName);
+
+            _downloadingModel = fileName;
             _modelDownloadCts = new CancellationTokenSource();
-            DownloadModelButton.IsEnabled = false;
-            ModelDownloadComboBox.IsEnabled = false;
-            CancelDownloadButton.Visibility = Visibility.Visible;
             ModelDownloadProgress.Visibility = Visibility.Visible;
             ModelDownloadProgress.Value = 0;
             ModelDownloadStatusText.Visibility = Visibility.Visible;
             ModelDownloadStatusText.Text = $"正在连接魔搭社区下载 {model.FileName}（{model.SizeText}）...";
+            RefreshModelList();
 
             var progress = new Progress<ModelDownloadProgress>(p =>
             {
@@ -131,7 +190,6 @@ namespace English_Listen_WinUI.Views
 
                 ModelDownloadProgress.Value = 100;
                 ModelDownloadStatusText.Text = $"下载完成，已启用 {model.FileName}。";
-                RefreshWhisperModelStatus();
             }
             catch (OperationCanceledException)
             {
@@ -143,17 +201,65 @@ namespace English_Listen_WinUI.Views
             }
             finally
             {
-                DownloadModelButton.IsEnabled = true;
-                ModelDownloadComboBox.IsEnabled = true;
-                CancelDownloadButton.Visibility = Visibility.Collapsed;
+                _downloadingModel = null;
                 _modelDownloadCts?.Dispose();
                 _modelDownloadCts = null;
+                RefreshModelList();
             }
         }
 
-        private void CancelDownloadButton_Click(object sender, RoutedEventArgs e)
+        private async void ModelDelete_Click(object sender, RoutedEventArgs e)
         {
-            _modelDownloadCts?.Cancel();
+            if (sender is not Button { Tag: string fileName }) return;
+            var path = Path.Combine(ModelsRoot, fileName);
+            if (!File.Exists(path)) return;
+
+            var dialog = new ContentDialog
+            {
+                Title = "删除模型",
+                Content = $"确定删除 {fileName}？删除后如需使用须重新下载。",
+                PrimaryButtonText = "删除",
+                CloseButtonText = "取消",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                ShowError("删除失败", ex.Message);
+                return;
+            }
+
+            // 删除的是当前启用模型时同步清空引用
+            if (string.Equals(_viewModel?.Settings?.Settings?.WhisperModelPath, path,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                _viewModel!.Settings!.Settings.WhisperModelPath = null;
+                await _viewModel.Settings.SaveSettingsAsync();
+            }
+            RefreshModelList();
+        }
+
+        private void OpenModelsFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            Directory.CreateDirectory(ModelsRoot);
+            Process.Start(new ProcessStartInfo("explorer.exe", ModelsRoot) { UseShellExecute = true });
+        }
+
+        private async void ActiveModelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isRefreshingModels) return;
+            if (ActiveModelComboBox.SelectedItem is ComboBoxItem { Tag: string path })
+            {
+                _viewModel!.Settings!.Settings.WhisperModelPath = path;
+                await _viewModel.Settings.SaveSettingsAsync();
+                RefreshModelList();
+            }
         }
 
         private static string FormatBytes(long bytes)
@@ -363,23 +469,6 @@ namespace English_Listen_WinUI.Views
             catch (Exception ex)
             {
                 Debug.WriteLine($"LoadVoicesForCurrentEngine 失败: {ex.Message}");
-            }
-        }
-
-        // ponytail: debug helper, remove after NaturalVoiceSAPIAdapter detection is stable
-        private void DumpSapiVoiceIds()
-        {
-            if (_viewModel?.SpeechService == null) return;
-            try
-            {
-                var lines = _viewModel.SpeechService.DumpRawVoiceInfo();
-                var path = Path.Combine(ApplicationData.Current.LocalFolder.Path, "voice_debug.txt");
-                File.WriteAllLines(path, lines);
-                MainWindow.ShowNotification($"已导出 {lines.Length} 个语音信息到 voice_debug.txt");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"导出语音信息失败: {ex.Message}");
             }
         }
 
@@ -1083,5 +1172,24 @@ namespace English_Listen_WinUI.Views
             public int Limit { get; set; }
             public bool Unlimited { get; set; }
         }
+    }
+
+    /// <summary>设置页模型管理列表项（供 x:Bind）</summary>
+    public sealed class ModelListItem
+    {
+        public required string FileName { get; set; }
+        public required string Name { get; set; }
+        public required string Description { get; set; }
+        public required string SizeText { get; set; }
+        public bool IsDownloaded { get; set; }
+        public bool IsDownloading { get; set; }
+
+        public string DownloadAction => IsDownloading ? "取消"
+            : IsDownloaded ? "已下载" : "下载";
+
+        public bool DownloadEnabled => !IsDownloaded;
+
+        public Visibility DeleteVisibility => IsDownloaded && !IsDownloading
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 }

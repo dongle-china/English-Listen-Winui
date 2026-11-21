@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:English_Listen_WinUI.Views"
     mc:Ignorable="d"
     d:DesignHeight="400" d:DesignWidth="500">
 
@@ -118,33 +119,39 @@
                         BorderThickness="1"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                     <StackPanel>
-                        <TextBlock Text="Whisper 转写模型"
+                        <TextBlock Text="模型管理"
                                    Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,0,0,5" />
-                        <TextBlock Text="用于素材库音视频本地转写，全程离线运行。模型从魔搭社区 (ModelScope) 下载，下载后也可在素材库页改选其他本地模型文件。"
+                        <TextBlock Text="Whisper 转写模型（用于素材库本地离线转写），从魔搭社区 (ModelScope) 下载；也可在素材库页改选其他本地模型文件。"
                                    Style="{ThemeResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap" />
-                        <TextBlock x:Name="WhisperModelStatusText"
-                                   Text="当前模型：未配置"
-                                   Style="{ThemeResource BodyTextBlockStyle}"
-                                   TextWrapping="Wrap" Margin="0,10,0,0" />
 
-                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
-                            <ComboBox x:Name="ModelDownloadComboBox" Width="300" SelectedIndex="1">
-                                <ComboBoxItem Content="tiny · 78 MB（最快，精度较低）" />
-                                <ComboBoxItem Content="base · 148 MB（推荐，速度与精度均衡）" />
-                                <ComboBoxItem Content="small · 488 MB（更高精度）" />
-                                <ComboBoxItem Content="medium · 1.5 GB（最高精度，速度较慢）" />
-                            </ComboBox>
-                            <Button x:Name="DownloadModelButton"
-                                    Content="下载模型"
-                                    Style="{ThemeResource AccentButtonStyle}"
-                                    Click="DownloadModelButton_Click" />
-                            <Button x:Name="CancelDownloadButton"
-                                    Content="取消"
-                                    Visibility="Collapsed"
-                                    Click="CancelDownloadButton_Click" />
-                        </StackPanel>
+                        <ListView x:Name="ModelList" SelectionMode="None" Margin="0,10,0,0">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:ModelListItem">
+                                    <Grid ColumnDefinitions="80,*,70,Auto" ColumnSpacing="12" Padding="0,10">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Description}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind SizeText}"
+                                                   VerticalAlignment="Center" />
+                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                                            <Button Content="{x:Bind DownloadAction}"
+                                                    IsEnabled="{x:Bind DownloadEnabled}"
+                                                    Tag="{x:Bind FileName}"
+                                                    Click="ModelDownload_Click" MinWidth="72" />
+                                            <Button Content="删除"
+                                                    Visibility="{x:Bind DeleteVisibility}"
+                                                    Tag="{x:Bind FileName}"
+                                                    Click="ModelDelete_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
 
                         <ProgressBar x:Name="ModelDownloadProgress"
                                      Visibility="Collapsed"
@@ -154,6 +161,18 @@
                                    Margin="0,4,0,0"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap" />
+
+                        <HyperlinkButton x:Name="OpenModelsFolderButton"
+                                         Content="打开模型目录"
+                                         Click="OpenModelsFolderButton_Click"
+                                         Margin="0,10,0,0" Padding="0" />
+                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+                            <TextBlock Text="当前使用模型:"
+                                       Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                       VerticalAlignment="Center" />
+                            <ComboBox x:Name="ActiveModelComboBox" MinWidth="280"
+                                      SelectionChanged="ActiveModelComboBox_SelectionChanged" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

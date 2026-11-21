@@ -9,6 +9,13 @@
     d:DesignHeight="700" d:DesignWidth="900">
 
     <Page.Resources>
+        <!-- 左侧暗色渐变，保证插画上的白色标题可读（浅色/深色主题共用） -->
+        <LinearGradientBrush x:Key="HeroScrimBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Offset="0" Color="#CC000000" />
+            <GradientStop Offset="0.55" Color="#66000000" />
+            <GradientStop Offset="1" Color="#00000000" />
+        </LinearGradientBrush>
+
         <!-- WinUI Gallery 风格的功能卡片 -->
         <DataTemplate x:Key="CardTemplate" x:DataType="local:HomeCardItem">
             <Button Tag="{x:Bind PageName}"
@@ -45,13 +52,17 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="36,24,36,16" Spacing="20">
 
-            <!-- 头部 -->
-            <StackPanel Spacing="4">
-                <TextBlock Text="English Listen" FontSize="40" FontWeight="Bold" />
-                <TextBlock Text="智能英语精听训练台 · 听写 · 背诵 · 逐句精听"
-                           FontSize="15"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-            </StackPanel>
+            <!-- 头部插画（浅色/深色主题由代码后置切换 ActualThemeChanged） -->
+            <Grid Height="220" CornerRadius="8">
+                <Image x:Name="HeroImage" Stretch="UniformToFill" />
+                <Rectangle Fill="{StaticResource HeroScrimBrush}" />
+                <StackPanel Margin="28,0" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="English Listen" FontSize="36" FontWeight="Bold"
+                               Foreground="White" />
+                    <TextBlock Text="智能英语精听训练台 · 听写 · 背诵 · 逐句精听"
+                               FontSize="14" Foreground="#E5FFFFFF" />
+                </StackPanel>
+            </Grid>
 
             <!-- 学习统计 -->
             <StackPanel x:Name="StatsPanel" Orientation="Horizontal" Spacing="12"

@@ -3,6 +3,7 @@ using System.Linq;
 using English_Listen_WinUI.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel;
 
 namespace English_Listen_WinUI.Views
@@ -37,7 +38,16 @@ namespace English_Listen_WinUI.Views
             _viewModel = App.SharedViewModel!;
             this.DataContext = _viewModel;
             CardsRepeater.ItemsSource = _cards;
+            // ThemeDictionaries 放 ImageSource 会让 XamlCompiler 崩溃，改由代码切换主题插画
+            UpdateHeroImage();
+            this.ActualThemeChanged += (s, _) => UpdateHeroImage();
             Loaded += HomePage_Loaded;
+        }
+
+        private void UpdateHeroImage()
+        {
+            var file = ActualTheme == ElementTheme.Dark ? "HomeHeroDark.png" : "HomeHero.png";
+            HeroImage.Source = new BitmapImage(new Uri($"ms-appx:///Assets/{file}"));
         }
 
         private void HomePage_Loaded(object sender, RoutedEventArgs e)

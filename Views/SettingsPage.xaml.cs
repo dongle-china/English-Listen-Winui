@@ -7,12 +7,12 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.ApplicationModel;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Media.SpeechSynthesis;
 using Windows.Storage;
 using Windows.System;
+using English_Listen_WinUI.Helpers;
 using English_Listen_WinUI.Services;
 using English_Listen_WinUI.ViewModels;
 using Microsoft.UI.Xaml;
@@ -59,8 +59,7 @@ namespace English_Listen_WinUI.Views
                 this.DataContext = _viewModel;
                 LoadSettings();
 
-                var v = Package.Current.Id.Version;
-                VersionLabel.Text = $"当前版本: v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
+                VersionLabel.Text = $"当前版本: v{AppVersion.Current}";
 
                 // 初始化 MediaPlayer（非 WinRT 语音不播放）
                 _mediaPlayer = new MediaPlayer();

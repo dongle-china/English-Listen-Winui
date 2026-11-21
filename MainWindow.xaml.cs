@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using English_Listen_WinUI.Helpers;
 using English_Listen_WinUI.Models;
 using English_Listen_WinUI.Services;
 using English_Listen_WinUI.ViewModels;
@@ -574,7 +575,7 @@ namespace English_Listen_WinUI
                 ScrollViewer scrollViewer = new ScrollViewer();
                 TextBlock textBlock = new TextBlock
                 {
-                    Text = $"English Listen v{Package.Current.Id.Version.Major}.{Package.Current.Id.Version.Minor}.{Package.Current.Id.Version.Build}.{Package.Current.Id.Version.Revision}\r\n\r\n一个帮助学习英语的听写练习工具\r\n\r\n基于 WinUI3 框架开发，支持多种语音引擎。\r\n\r\n功能特点：\r\n- 支持自定义词库\r\n- 可调节朗读时间间隔\r\n- 支持深色/浅色主题切换\r\n- 提供测试历史记录查看\r\n- 界面简洁易用\r\n\r\n版权 © 2026 dongle。本软件使用 MIT 许可证发布。",
+                    Text = $"English Listen v{AppVersion.Current}\r\n\r\n一个帮助学习英语的听写练习工具\r\n\r\n基于 WinUI3 框架开发，支持多种语音引擎。\r\n\r\n功能特点：\r\n- 支持自定义词库\r\n- 可调节朗读时间间隔\r\n- 支持深色/浅色主题切换\r\n- 提供测试历史记录查看\r\n- 界面简洁易用\r\n\r\n版权 © 2026 dongle。本软件使用 MIT 许可证发布。",
                     TextWrapping = TextWrapping.Wrap
                 };
                 scrollViewer.Content = textBlock;

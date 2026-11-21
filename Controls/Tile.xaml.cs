@@ -1,8 +1,9 @@
 // 复制自 WinUI Gallery Controls/HomePage/Tile.xaml.cs（MIT License），命名空间改为本项目。
 // 新增行为（HyperlinkButton.Click 分发）：
-//   Link（外链，如 GitHub）→ NavigateUri 由平台处理，点击处理器不动作；
-//   InAppLink（学习资源）  → 应用内 BrowserWindow(WebView2) 打开；
-//   PageName（内部页面）   → 触发 TileClick 事件，由宿主页面完成导航。
+//   InAppLink（学习资源/GitHub）→ 应用内 BrowserWindow(WebView2) 打开；
+//   PageName（内部页面）        → 触发 TileClick 事件，由宿主页面完成导航。
+// 注意：原版 NavigateUri="{x:Bind Link}" 在 Link 为 null 时抛 E_INVALIDARG（ConvertValue 不接受
+// null），本项目瓦片不再使用 NavigateUri，外部链接一律走 InAppLink 应用内打开。
 
 using System;
 using English_Listen_WinUI.Views;
@@ -43,16 +44,6 @@ public sealed partial class Tile : UserControl
     public static readonly DependencyProperty SourceProperty =
         DependencyProperty.Register(nameof(Source), typeof(object), typeof(Tile), new PropertyMetadata(null));
 
-    /// <summary>外部链接（系统浏览器打开，仅 GitHub 使用），由 HyperlinkButton.NavigateUri 处理。</summary>
-    public string Link
-    {
-        get { return (string)GetValue(LinkProperty); }
-        set { SetValue(LinkProperty, value); }
-    }
-
-    public static readonly DependencyProperty LinkProperty =
-        DependencyProperty.Register(nameof(Link), typeof(string), typeof(Tile), new PropertyMetadata(null));
-
     /// <summary>点击后导航到的应用内页面名；由 TileClick 事件交给宿主页面处理。</summary>
     public string PageName
     {
@@ -80,11 +71,6 @@ public sealed partial class Tile : UserControl
 
     private void LinkButton_Click(object sender, RoutedEventArgs e)
     {
-        if (Link != null)
-        {
-            // 外链：NavigateUri 已由平台处理，避免重复动作
-            return;
-        }
         if (PageName is string page)
         {
             TileClick?.Invoke(this, page);

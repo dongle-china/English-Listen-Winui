@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
+using English_Listen_WinUI.Helpers;
 using English_Listen_WinUI.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.ApplicationModel;
 
 namespace English_Listen_WinUI.Views
 {
@@ -58,9 +58,7 @@ namespace English_Listen_WinUI.Views
 
         private void HomePage_Loaded(object sender, RoutedEventArgs e)
         {
-            // 版本号唯一来源：Package.appxmanifest
-            var v = Package.Current.Id.Version;
-            VersionTextBlock.Text = $"English Listen v{v.Major}.{v.Minor}.{v.Build}.{v.Revision}";
+            VersionTextBlock.Text = $"English Listen v{AppVersion.Current}";
 
             if (_viewModel?.TestHistory != null && _viewModel.TestHistory.Count > 0)
             {

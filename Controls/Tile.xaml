@@ -47,8 +47,7 @@
             VerticalContentAlignment="Stretch"
             AutomationProperties.LabeledBy="{Binding ElementName=TitleText}"
             Click="LinkButton_Click"
-            CornerRadius="{StaticResource OverlayCornerRadius}"
-            NavigateUri="{x:Bind Link}">
+            CornerRadius="{StaticResource OverlayCornerRadius}">
             <Grid
                 Padding="24"
                 VerticalAlignment="Stretch"

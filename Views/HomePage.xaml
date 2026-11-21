@@ -63,28 +63,61 @@
             </Button>
         </DataTemplate>
 
-        <!-- 复刻 WinUI Gallery 头部外链瓦片：SVG 图标 + 标题 + 描述，点击经系统浏览器打开 -->
+        <!-- 复刻 WinUI Gallery Controls/HomePage/Tile.xaml：固定 232×172、亚克力底、圆角 8、
+             图标区顶部（高 36）、标题+描述贴底部、外链瓦片右下角小箭头（E8A7） -->
         <DataTemplate x:Key="LinkTileTemplate" x:DataType="local:LinkTileItem">
-            <Button Tag="{x:Bind Url}"
-                    Click="LinkTile_Click"
+            <Button Width="232"
+                    Height="172"
+                    Click="Tile_Click"
                     AutomationProperties.Name="{x:Bind Title}"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    MinHeight="140"
-                    Padding="16"
-                    HorizontalContentAlignment="Left"
-                    VerticalContentAlignment="Top"
-                    CornerRadius="{StaticResource OverlayCornerRadius}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    Padding="0"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    CornerRadius="8"
+                    Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
                     BorderThickness="1">
-                <StackPanel Spacing="8">
-                    <Image Source="{x:Bind Icon}" Width="36" Height="36" HorizontalAlignment="Left" />
-                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                    <TextBlock Text="{x:Bind Description}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
+                <Grid Padding="24"
+                      VerticalAlignment="Stretch"
+                      RowSpacing="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <FontIcon Grid.RowSpan="3"
+                              Margin="-12"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              FontSize="14"
+                              Glyph="&#xE8A7;"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                              Visibility="{x:Bind ArrowVisibility}" />
+                    <Grid Height="36">
+                        <SymbolIcon Symbol="{x:Bind Glyph}"
+                                    Width="32"
+                                    Height="32"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top"
+                                    Visibility="{x:Bind SymbolVisibility}" />
+                        <Image Source="{x:Bind Icon}"
+                               Width="36"
+                               Height="36"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Top"
+                               Visibility="{x:Bind IconVisibility}" />
+                    </Grid>
+                    <StackPanel Grid.Row="1"
+                                Spacing="4"
+                                VerticalAlignment="Bottom">
+                        <TextBlock Text="{x:Bind Title}"
+                                   Style="{StaticResource BodyStrongTextBlockStyle}"
+                                   TextWrapping="NoWrap" />
+                        <TextBlock Text="{x:Bind Description}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
             </Button>
         </DataTemplate>
     </Page.Resources>
@@ -113,12 +146,23 @@
                          IsClosable="False" IsOpen="True" />
             </StackPanel>
 
-            <!-- 快速开始（外链瓦片，URL 抄自 WinUI Gallery 头部） -->
+            <!-- 快速开始（Gallery Tile 风格瓦片：应用内导航 + 本软件 GitHub 外链） -->
             <StackPanel Spacing="12">
                 <TextBlock Text="快速开始" FontSize="20" FontWeight="SemiBold" />
                 <ItemsRepeater x:Name="LinksRepeater" ItemTemplate="{StaticResource LinkTileTemplate}">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="230" MinItemHeight="140"
+                        <UniformGridLayout MinItemWidth="232" MinItemHeight="172"
+                                           MinRowSpacing="12" MinColumnSpacing="12" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+            </StackPanel>
+
+            <!-- 学习资源（词典 / 听力 / 阅读 / 工具，应用内 WebView2 窗口打开） -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="学习资源" FontSize="20" FontWeight="SemiBold" />
+                <ItemsRepeater x:Name="ResourcesRepeater" ItemTemplate="{StaticResource LinkTileTemplate}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="232" MinItemHeight="172"
                                            MinRowSpacing="12" MinColumnSpacing="12" />
                     </ItemsRepeater.Layout>
                 </ItemsRepeater>

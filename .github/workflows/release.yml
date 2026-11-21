@@ -39,10 +39,17 @@ jobs:
       - name: Build x86 / x64 / ARM64 (Release, unsigned)
         shell: pwsh
         run: |
+          # 每次 MSIX 打包会清空 _Test 目录，构建完一个架构立即收集
+          New-Item -ItemType Directory -Path bundle -Force | Out-Null
           foreach ($plat in 'x86','x64','ARM64') {
             & dotnet build English-Listen-WinUI.csproj -c Release -p:Platform=$plat
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            $msix = Get-ChildItem AppPackages -Recurse -Filter *.msix
+            if (-not $msix) { throw "no msix produced for $plat" }
+            $msix | Copy-Item -Destination bundle
           }
+          $archCount = (Get-ChildItem bundle -Filter *.msix).Count
+          if ($archCount -ne 3) { throw "expected 3 msix (x86/x64/ARM64), found $archCount" }
 
       - name: Bundle, sign, export cert
         shell: pwsh
@@ -55,11 +62,8 @@ jobs:
           $version = $manifest.Package.Identity.Version
           Write-Host "Packaging version $version"
 
-          # 收集三架构 msix，重新打成一个 bundle（csproj 的 AppxBundle=Always 每次只含单架构）
-          $pkgDir = New-Item -ItemType Directory -Path bundle -Force
-          Get-ChildItem AppPackages -Recurse -Filter *.msix | Copy-Item -Destination $pkgDir
-          $archCount = (Get-ChildItem $pkgDir -Filter *.msix).Count
-          if ($archCount -ne 3) { throw "expected 3 msix (x86/x64/ARM64), found $archCount" }
+          # 三架构 msix 已在构建步骤收进 bundle\ 目录
+          $pkgDir = Get-Item bundle
 
           $sdkBin = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64" -Directory |
             Sort-Object FullName -Descending | Select-Object -First 1).FullName

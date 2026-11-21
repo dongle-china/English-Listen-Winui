@@ -370,3 +370,6 @@ config/redeem_codes.json
 devcert.pfx
 # devcert.pfx 为公开开发证书（私钥受密码保护，密码在 GitHub secret DEVCERT_PASSWORD），CI 签名需要，故放行入库
 !devcert.pfx
+
+# JetBrains Rider IDE state
+.idea/

@@ -4,137 +4,223 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:English_Listen_WinUI.Controls"
     xmlns:local="using:English_Listen_WinUI.Views"
     mc:Ignorable="d"
     d:DesignHeight="700" d:DesignWidth="900">
 
     <Page.Resources>
-        <!-- 左侧暗色渐变，保证插画上的白色标题可读（浅色/深色主题共用） -->
-        <LinearGradientBrush x:Key="HeroScrimBrush" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Offset="0" Color="#CC000000" />
-            <GradientStop Offset="0.55" Color="#66000000" />
-            <GradientStop Offset="1" Color="#00000000" />
-        </LinearGradientBrush>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- 复刻 WinUI Gallery HomePageHeader 主题资源；
+                     注意：ThemeDictionaries 里放 ImageSource 会让 XamlCompiler 静默崩溃，插画切换在代码后置做 -->
+                <ResourceDictionary x:Key="Light">
+                    <LinearGradientBrush x:Key="BackgroundGradient" StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Offset="0.0" Color="#CED8E4" />
+                        <GradientStop Offset="1.0" Color="#D5DBE3" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="ForegroundBrush" Color="Black" />
+                    <x:Double x:Key="ImageOpacity">0.9</x:Double>
+                    <LinearGradientBrush x:Key="OverlayRadialGradient" StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Offset="0" Color="#FFFFFFFF" />
+                        <GradientStop Offset="0.75" Color="#FFFFFFFF" />
+                        <GradientStop Offset="0.85" Color="#00FFFFFF" />
+                        <GradientStop Offset="1" Color="#00FFFFFF" />
+                    </LinearGradientBrush>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="BackgroundGradient" Color="#020B20" />
+                    <SolidColorBrush x:Key="ForegroundBrush" Color="White" />
+                    <x:Double x:Key="ImageOpacity">0.8</x:Double>
+                    <LinearGradientBrush x:Key="OverlayRadialGradient" StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Offset="0" Color="#FF000000" />
+                        <GradientStop Offset="0.75" Color="#FF000000" />
+                        <GradientStop Offset="0.85" Color="#00000000" />
+                        <GradientStop Offset="1" Color="#00000000" />
+                    </LinearGradientBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
 
-        <!-- 复刻 WinUI Gallery ControlItemTemplate（32px 图标 + 标题底部对齐 + Caption 副标题）；
-             Gallery 用 GridView ItemClick 处理交互，这里用 Button 包装获得等价悬停/按压反馈 -->
-        <DataTemplate x:Key="CardTemplate" x:DataType="local:HomeCardItem">
-            <Button Tag="{x:Bind PageName}"
-                    Click="Card_Click"
-                    AutomationProperties.Name="{x:Bind Title}"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    Height="96"
-                    Padding="8"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    CornerRadius="{StaticResource OverlayCornerRadius}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1">
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <SymbolIcon Grid.RowSpan="2"
-                                Width="32"
-                                Margin="8,12,16,0"
-                                VerticalAlignment="Top"
-                                Symbol="{x:Bind Glyph}" />
-                    <TextBlock Grid.Column="1"
-                               Margin="0,12,0,0"
-                               VerticalAlignment="Bottom"
-                               Style="{StaticResource BodyStrongTextBlockStyle}"
-                               Text="{x:Bind Title}"
-                               TextLineBounds="TrimToCapHeight"
-                               TextWrapping="NoWrap" />
-                    <TextBlock Grid.Row="1"
-                               Grid.Column="1"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               Style="{StaticResource CaptionTextBlockStyle}"
-                               Text="{x:Bind Subtitle}"
-                               TextTrimming="WordEllipsis"
-                               ToolTipService.ToolTip="{x:Bind Subtitle}" />
-                </Grid>
-            </Button>
-        </DataTemplate>
+            <!-- WinUI Gallery 的 GitHub 图标矢量路径 -->
+            <x:String x:Key="GitHubIconPath">M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z</x:String>
 
-        <!-- 复刻 WinUI Gallery Controls/HomePage/Tile.xaml：固定 232×172、亚克力底、圆角 8、
-             图标区顶部（高 36）、标题+描述贴底部、外链瓦片右下角小箭头（E8A7） -->
-        <DataTemplate x:Key="LinkTileTemplate" x:DataType="local:LinkTileItem">
-            <Button Width="232"
-                    Height="172"
-                    Click="Tile_Click"
-                    AutomationProperties.Name="{x:Bind Title}"
-                    Padding="0"
-                    HorizontalContentAlignment="Stretch"
-                    VerticalContentAlignment="Stretch"
-                    CornerRadius="8"
-                    Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
-                    BorderThickness="1">
-                <Grid Padding="24"
-                      VerticalAlignment="Stretch"
-                      RowSpacing="16">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="36" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <FontIcon Grid.RowSpan="3"
-                              Margin="-12"
-                              HorizontalAlignment="Right"
-                              VerticalAlignment="Bottom"
-                              FontSize="14"
-                              Glyph="&#xE8A7;"
-                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                              Visibility="{x:Bind ArrowVisibility}" />
-                    <Grid Height="36">
-                        <SymbolIcon Symbol="{x:Bind Glyph}"
+            <!-- 复刻 WinUI Gallery ControlItemTemplate（32px 图标 + 标题底部对齐 + Caption 副标题）；
+                 Gallery 用 GridView ItemClick 处理交互，这里用 Button 包装获得等价悬停/按压反馈 -->
+            <DataTemplate x:Key="CardTemplate" x:DataType="local:HomeCardItem">
+                <Button Tag="{x:Bind PageName}"
+                        Click="Card_Click"
+                        AutomationProperties.Name="{x:Bind Title}"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Height="96"
+                        Padding="8"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch"
+                        CornerRadius="{StaticResource OverlayCornerRadius}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <SymbolIcon Grid.RowSpan="2"
                                     Width="32"
-                                    Height="32"
-                                    HorizontalAlignment="Left"
+                                    Margin="8,12,16,0"
                                     VerticalAlignment="Top"
-                                    Visibility="{x:Bind SymbolVisibility}" />
-                        <Image Source="{x:Bind Icon}"
-                               Width="36"
-                               Height="36"
-                               HorizontalAlignment="Left"
-                               VerticalAlignment="Top"
-                               Visibility="{x:Bind IconVisibility}" />
-                    </Grid>
-                    <StackPanel Grid.Row="1"
-                                Spacing="4"
-                                VerticalAlignment="Bottom">
-                        <TextBlock Text="{x:Bind Title}"
+                                    Symbol="{x:Bind Glyph}" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="0,12,0,0"
+                                   VerticalAlignment="Bottom"
                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                   Text="{x:Bind Title}"
+                                   TextLineBounds="TrimToCapHeight"
                                    TextWrapping="NoWrap" />
-                        <TextBlock Text="{x:Bind Description}"
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="1"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </Grid>
-            </Button>
-        </DataTemplate>
+                                   Text="{x:Bind Subtitle}"
+                                   TextTrimming="WordEllipsis"
+                                   ToolTipService.ToolTip="{x:Bind Subtitle}" />
+                    </Grid>
+                </Button>
+            </DataTemplate>
+        </ResourceDictionary>
     </Page.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="36,24,36,16" Spacing="20">
+        <StackPanel Margin="36,24,36,16" Spacing="24">
 
-            <!-- 头部插画（浅色/深色主题由代码后置切换 ActualThemeChanged） -->
-            <Grid Height="220" CornerRadius="8">
-                <Image x:Name="HeroImage" Stretch="UniformToFill" />
-                <Rectangle Fill="{StaticResource HeroScrimBrush}" />
-                <StackPanel Margin="28,0" VerticalAlignment="Center" Spacing="4">
-                    <TextBlock Text="English Listen" FontSize="36" FontWeight="Bold"
-                               Foreground="White" />
-                    <TextBlock Text="智能英语精听训练台 · 听写 · 背诵 · 逐句精听"
-                               FontSize="14" Foreground="#E5FFFFFF" />
+            <!-- 头部：复刻 WinUI Gallery HomePageHeader（渐隐插画 + 悬浮其上的横向滚动瓦片条） -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <controls:OpacityMaskView
+                    Grid.RowSpan="3"
+                    Height="400"
+                    VerticalAlignment="Stretch">
+                    <controls:OpacityMaskView.OpacityMask>
+                        <Rectangle Fill="{ThemeResource OverlayRadialGradient}" />
+                    </controls:OpacityMaskView.OpacityMask>
+                    <Grid
+                        Margin="0,-100,0,0"
+                        Background="{ThemeResource BackgroundGradient}">
+                        <Image
+                            x:Name="HeroImage"
+                            Opacity="{ThemeResource ImageOpacity}"
+                            Stretch="UniformToFill" />
+                    </Grid>
+                </controls:OpacityMaskView>
+
+                <StackPanel
+                    Margin="36,48,0,0"
+                    VerticalAlignment="Center"
+                    Orientation="Vertical">
+                    <TextBlock
+                        Foreground="{ThemeResource ForegroundBrush}"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Text="智能英语精听训练台 · 听写 · 背诵 · 逐句精听" />
+                    <TextBlock
+                        AutomationProperties.HeadingLevel="Level1"
+                        Foreground="{ThemeResource ForegroundBrush}"
+                        Style="{StaticResource TitleLargeTextBlockStyle}"
+                        Text="English Listen" />
                 </StackPanel>
+
+                <!-- 快速开始：应用内导航瓦片 + GitHub 仓库（应用内 WebView2 窗口打开） -->
+                <controls:HorizontalScrollContainer Grid.Row="2" Margin="0,56,0,0">
+                    <controls:HorizontalScrollContainer.Source>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <controls:Tile
+                                x:Name="ImportTile"
+                                Title="导入素材"
+                                Description="导入音视频，自动转写切句"
+                                PageName="MediaLibraryPage">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE898;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                x:Name="DictationTile"
+                                Title="开始听写"
+                                Description="纸笔 / 在线两种听写模式"
+                                PageName="WordsPage">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE70F;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                x:Name="MemorizeTile"
+                                Title="背单词"
+                                Description="自动朗读背诵，记录进度"
+                                PageName="MemorizePage">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE8F1;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                x:Name="ProgressTile"
+                                Title="学习历史"
+                                Description="成绩统计与错词回顾"
+                                PageName="ProgressPage">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE787;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                x:Name="HelpTile"
+                                Title="帮助文档"
+                                Description="训练流程与功能教程"
+                                PageName="HelpPage">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE897;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                x:Name="GitHubTile"
+                                Title="GitHub 仓库"
+                                Description="源码、Issue 与版本发布"
+                                InAppLink="https://github.com/dongle-china/English-Listen-Winui">
+                                <controls:Tile.Source>
+                                    <Viewbox>
+                                        <PathIcon
+                                            Data="{StaticResource GitHubIconPath}"
+                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                    </Viewbox>
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                        </StackPanel>
+                    </controls:HorizontalScrollContainer.Source>
+                </controls:HorizontalScrollContainer>
             </Grid>
 
             <!-- 学习统计 -->
@@ -146,26 +232,168 @@
                          IsClosable="False" IsOpen="True" />
             </StackPanel>
 
-            <!-- 快速开始（Gallery Tile 风格瓦片：应用内导航 + 本软件 GitHub 外链） -->
+            <!-- 词典：点击在应用内 BrowserWindow(WebView2) 打开 -->
             <StackPanel Spacing="12">
-                <TextBlock Text="快速开始" FontSize="20" FontWeight="SemiBold" />
-                <ItemsRepeater x:Name="LinksRepeater" ItemTemplate="{StaticResource LinkTileTemplate}">
-                    <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="232" MinItemHeight="172"
-                                           MinRowSpacing="12" MinColumnSpacing="12" />
-                    </ItemsRepeater.Layout>
-                </ItemsRepeater>
+                <TextBlock Text="词典" FontSize="20" FontWeight="SemiBold" />
+                <controls:HorizontalScrollContainer>
+                    <controls:HorizontalScrollContainer.Source>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <controls:Tile
+                                Title="朗文当代 (LDOCE)"
+                                Description="英英词典，例句地道，区分书面与口语"
+                                InAppLink="https://www.ldoceonline.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE736;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="牛津学习者词典"
+                                Description="释义清晰，配套语法工具与词表"
+                                InAppLink="https://www.oxfordlearnersdictionaries.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE8F1;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="柯林斯词典"
+                                Description="语料库释义，大量真实语境例句"
+                                InAppLink="https://www.collinsdictionary.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE8A5;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="韦氏词典"
+                                Description="美式权威，词源历史与用法提醒"
+                                InAppLink="https://www.merriam-webster.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE8A0;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="WordHippo"
+                                Description="同义词 / 反义词检索，替换平淡用词"
+                                InAppLink="https://www.wordhippo.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE721;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                        </StackPanel>
+                    </controls:HorizontalScrollContainer.Source>
+                </controls:HorizontalScrollContainer>
             </StackPanel>
 
-            <!-- 学习资源（词典 / 听力 / 阅读 / 工具，应用内 WebView2 窗口打开） -->
+            <!-- 听力 -->
             <StackPanel Spacing="12">
-                <TextBlock Text="学习资源" FontSize="20" FontWeight="SemiBold" />
-                <ItemsRepeater x:Name="ResourcesRepeater" ItemTemplate="{StaticResource LinkTileTemplate}">
-                    <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="232" MinItemHeight="172"
-                                           MinRowSpacing="12" MinColumnSpacing="12" />
-                    </ItemsRepeater.Layout>
-                </ItemsRepeater>
+                <TextBlock Text="听力" FontSize="20" FontWeight="SemiBold" />
+                <controls:HorizontalScrollContainer>
+                    <controls:HorizontalScrollContainer.Source>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <controls:Tile
+                                Title="BBC Learning English"
+                                Description="6 Minute English，语速适中话题贴近生活"
+                                InAppLink="https://www.bbc.co.uk/learningenglish">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE768;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="VOA Learning English"
+                                Description="慢速新闻，音频与文本同步"
+                                InAppLink="https://learningenglish.voanews.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE767;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                            <controls:Tile
+                                Title="TED 演讲"
+                                Description="长听力，积累观点与学术表达"
+                                InAppLink="https://www.ted.com/talks">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE714;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                        </StackPanel>
+                    </controls:HorizontalScrollContainer.Source>
+                </controls:HorizontalScrollContainer>
+            </StackPanel>
+
+            <!-- 阅读 -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="阅读" FontSize="20" FontWeight="SemiBold" />
+                <controls:HorizontalScrollContainer>
+                    <controls:HorizontalScrollContainer.Source>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <controls:Tile
+                                Title="News in Levels"
+                                Description="同一新闻多难度等级，附音频"
+                                InAppLink="https://www.newsinlevels.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE909;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                        </StackPanel>
+                    </controls:HorizontalScrollContainer.Source>
+                </controls:HorizontalScrollContainer>
+            </StackPanel>
+
+            <!-- 工具 -->
+            <StackPanel Spacing="12">
+                <TextBlock Text="工具" FontSize="20" FontWeight="SemiBold" />
+                <controls:HorizontalScrollContainer>
+                    <controls:HorizontalScrollContainer.Source>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <controls:Tile
+                                Title="Linggle"
+                                Description="搭配检索，写译防中式英语"
+                                InAppLink="https://linggle.com/">
+                                <controls:Tile.Source>
+                                    <FontIcon
+                                        Margin="0,8,0,0"
+                                        FontSize="24"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                        Glyph="&#xE721;" />
+                                </controls:Tile.Source>
+                            </controls:Tile>
+                        </StackPanel>
+                    </controls:HorizontalScrollContainer.Source>
+                </controls:HorizontalScrollContainer>
             </StackPanel>
 
             <!-- 功能导航 -->

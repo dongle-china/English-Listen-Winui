@@ -16,35 +16,50 @@
             <GradientStop Offset="1" Color="#00000000" />
         </LinearGradientBrush>
 
-        <!-- WinUI Gallery 风格的功能卡片 -->
+        <!-- 复刻 WinUI Gallery ControlItemTemplate（32px 图标 + 标题底部对齐 + Caption 副标题）；
+             Gallery 用 GridView ItemClick 处理交互，这里用 Button 包装获得等价悬停/按压反馈 -->
         <DataTemplate x:Key="CardTemplate" x:DataType="local:HomeCardItem">
             <Button Tag="{x:Bind PageName}"
                     Click="Card_Click"
                     AutomationProperties.Name="{x:Bind Title}"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    MinHeight="96"
-                    Padding="16"
-                    CornerRadius="{StaticResource ControlCornerRadius}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Height="96"
+                    Padding="8"
+                    HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch"
+                    CornerRadius="{StaticResource OverlayCornerRadius}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    HorizontalContentAlignment="Left">
-                <StackPanel Orientation="Horizontal" Spacing="14">
-                    <Border Width="40" Height="40"
-                            CornerRadius="{StaticResource ControlCornerRadius}"
-                            Background="{ThemeResource AccentFillColorDefaultBrush}"
-                            VerticalAlignment="Top">
-                        <SymbolIcon Symbol="{x:Bind Glyph}"
-                                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
-                    </Border>
-                    <StackPanel Spacing="2" VerticalAlignment="Center" MaxWidth="220">
-                        <TextBlock Text="{x:Bind Title}" FontSize="15" FontWeight="SemiBold" />
-                        <TextBlock Text="{x:Bind Subtitle}" FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </StackPanel>
+                    BorderThickness="1">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <SymbolIcon Grid.RowSpan="2"
+                                Width="32"
+                                Margin="8,12,16,0"
+                                VerticalAlignment="Top"
+                                Symbol="{x:Bind Glyph}" />
+                    <TextBlock Grid.Column="1"
+                               Margin="0,12,0,0"
+                               VerticalAlignment="Bottom"
+                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                               Text="{x:Bind Title}"
+                               TextLineBounds="TrimToCapHeight"
+                               TextWrapping="NoWrap" />
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="1"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Style="{StaticResource CaptionTextBlockStyle}"
+                               Text="{x:Bind Subtitle}"
+                               TextTrimming="WordEllipsis"
+                               ToolTipService.ToolTip="{x:Bind Subtitle}" />
+                </Grid>
             </Button>
         </DataTemplate>
     </Page.Resources>
@@ -78,7 +93,7 @@
                 <TextBlock Text="功能导航" FontSize="20" FontWeight="SemiBold" />
                 <ItemsRepeater x:Name="CardsRepeater" ItemTemplate="{StaticResource CardTemplate}">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="230" MinItemHeight="96"
+                        <UniformGridLayout MinItemWidth="300" MinItemHeight="96"
                                            MinRowSpacing="12" MinColumnSpacing="12" />
                     </ItemsRepeater.Layout>
                 </ItemsRepeater>

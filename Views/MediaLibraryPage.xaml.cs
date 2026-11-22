@@ -71,7 +71,7 @@ namespace English_Listen_WinUI.Views
     /// </summary>
     public sealed partial class MediaLibraryPage : Page
     {
-        private readonly SettingsService _settingsService = new();
+        private readonly SettingsService _settingsService;
         private readonly MediaLibraryService _mediaLibraryService;
         private readonly MediaImportService _importService;
         private readonly ITranscriptionService _transcriptionService = new WhisperNetTranscriptionService();
@@ -80,6 +80,8 @@ namespace English_Listen_WinUI.Views
         public MediaLibraryPage()
         {
             InitializeComponent();
+            // 用共享 SettingsService：SettingsPage 经共享实例写盘/改内存，自建实例的内存快照永不更新（曾导致"模型：未配置"）
+            _settingsService = App.SharedViewModel?.Settings ?? new SettingsService();
             _mediaLibraryService = new MediaLibraryService(_settingsService);
             _importService = new MediaImportService(_transcriptionService);
         }

@@ -570,6 +570,52 @@ namespace English_Listen_WinUI.Views
             MainWindow.ShowNotification($"已清除 {selected.Count} 个单词的学习状态");
         }
 
+        /// <summary>行内"已学习"按钮：把该单词标记为已学习并持久化。</summary>
+        private async void MarkWordLearnedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { DataContext: MemorizeWordItem item }) return;
+
+            var learned = new HashSet<string>(_viewModel.StudyPlan.LearnedWords ?? new());
+            if (!learned.Add(item.Word)) return; // 已学习过，幂等
+            _viewModel.StudyPlan.LearnedWords = learned.ToList();
+            await _viewModel.SaveStudyPlanAsync();
+            item.LearnedStatus = "已学习";
+            UploadSettingsFileToCloudQuietly();
+        }
+
+        /// <summary>把勾选的单词批量标记为已学习并持久化。</summary>
+        private async void MarkSelectedLearnedButton_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = _wordList.Where(w => w.IsSelected).Select(w => w.Word).ToHashSet();
+            if (selected.Count == 0)
+            {
+                MainWindow.ShowNotification("请先勾选要标记的单词");
+                return;
+            }
+
+            var learned = new HashSet<string>(_viewModel.StudyPlan.LearnedWords ?? new());
+            learned.UnionWith(selected);
+            _viewModel.StudyPlan.LearnedWords = learned.ToList();
+            await _viewModel.SaveStudyPlanAsync();
+            UpdateWordsListBox();
+            MainWindow.ShowNotification($"已标记 {selected.Count} 个单词为已学习");
+            UploadSettingsFileToCloudQuietly();
+        }
+
+        /// <summary>已登录时静默上传 settings.json（已学习/已背会等变更上云），失败静默由"全部同步"兜底。</summary>
+        private static async void UploadSettingsFileToCloudQuietly()
+        {
+            if (!Services.WebApiService.Instance.IsLoggedIn) return;
+            try
+            {
+                await new CloudSyncService().UploadSettingsFileAsync();
+            }
+            catch
+            {
+                // 静默：下次"全部同步"兜底
+            }
+        }
+
         // ========== 开始背单词 ==========
 
         private async void StartMemorizeButton_Click(object sender, RoutedEventArgs e)
@@ -695,6 +741,7 @@ namespace English_Listen_WinUI.Views
             {
                 _viewModel.StudyPlan.MemorizedWords = memorized.ToList();
                 await _viewModel.SaveStudyPlanAsync();
+                UploadSettingsFileToCloudQuietly();
             }
 
             _studyWords.RemoveAt(_currentIndex);
@@ -738,6 +785,7 @@ namespace English_Listen_WinUI.Views
             };
 
             var searchBox = new TextBox { PlaceholderText = "搜索单词或翻译" };
+            var countText = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
             var selectAllButton = new Button { Content = "全选" };
             var invertButton = new Button { Content = "反选" };
             var listView = new ListView
@@ -747,6 +795,17 @@ namespace English_Listen_WinUI.Views
                 MaxHeight = 380,
                 ItemsSource = allItems
             };
+
+            // 实时已选计数：勾选变化（含全选/反选触发的 IsSelected 变更）时刷新
+            void UpdateCount() => countText.Text = $"已选 {allItems.Count(i => i.IsSelected)} / {allItems.Count} 个";
+            foreach (var i in allItems)
+            {
+                i.PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == nameof(MemorizeWordItem.IsSelected)) UpdateCount();
+                };
+            }
+            UpdateCount();
 
             // 搜索只过滤显示；全选/反选只作用于当前显示的单词
             searchBox.TextChanged += (_, _) =>
@@ -772,11 +831,27 @@ namespace English_Listen_WinUI.Views
             var buttonRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
             buttonRow.Children.Add(selectAllButton);
             buttonRow.Children.Add(invertButton);
+            buttonRow.Children.Add(countText);
+
+            // 听写模式选项（与 ShowDictationSettingsAndNavigateAsync 一致）
+            var modePanel = new StackPanel { Spacing = 5 };
+            var onlineModeRadio = new RadioButton { Content = "在线听写", IsChecked = true, GroupName = "MemorizedDictationMode" };
+            var paperModeRadio = new RadioButton { Content = "纸笔听写", GroupName = "MemorizedDictationMode" };
+            modePanel.Children.Add(onlineModeRadio);
+            modePanel.Children.Add(paperModeRadio);
+
+            var randomOrderSwitch = new ToggleSwitch
+                { Header = "随机顺序", IsOn = false, OffContent = "关闭", OnContent = "开启" };
+            var readTranslationSwitch = new ToggleSwitch
+                { Header = "朗读翻译", IsOn = false, OffContent = "关闭", OnContent = "开启" };
 
             var panel = new StackPanel { Spacing = 10 };
             panel.Children.Add(searchBox);
             panel.Children.Add(buttonRow);
             panel.Children.Add(listView);
+            panel.Children.Add(modePanel);
+            panel.Children.Add(randomOrderSwitch);
+            panel.Children.Add(readTranslationSwitch);
             dialog.Content = panel;
 
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -794,7 +869,11 @@ namespace English_Listen_WinUI.Views
                 return;
             }
 
-            var testParams = new WordsPage.DictationTestParamsWithTranslations(chosen, false, false, false);
+            var testParams = new WordsPage.DictationTestParamsWithTranslations(
+                chosen,
+                randomOrderSwitch.IsOn,
+                readTranslationSwitch.IsOn,
+                paperModeRadio.IsChecked ?? false);
             Frame?.Navigate(typeof(DictationTestPage), testParams);
         }
 

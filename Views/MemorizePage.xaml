@@ -102,6 +102,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                                   Margin="5" VerticalAlignment="Center" />
@@ -113,6 +114,8 @@
                                         <TextBlock Grid.Column="3" Text="{Binding LearnedStatus}"
                                                    Margin="10" VerticalAlignment="Center" FontSize="12"
                                                    Foreground="{ThemeResource SystemAccentColor}" />
+                                        <Button Grid.Column="4" Content="已学习" Click="MarkWordLearnedButton_Click"
+                                                Padding="8,2" FontSize="12" VerticalAlignment="Center" />
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -128,6 +131,13 @@
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE72E;" FontSize="14" />
                                     <TextBlock Text="重置学习进度" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="MarkSelectedLearnedButton" Click="MarkSelectedLearnedButton_Click"
+                                    Padding="12,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE73E;" FontSize="14" />
+                                    <TextBlock Text="标记选中为已学习" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                             <Button x:Name="ClearSelectedLearnedButton" Click="ClearSelectedLearnedButton_Click"

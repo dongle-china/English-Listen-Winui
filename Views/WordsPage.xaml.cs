@@ -1748,6 +1748,8 @@ namespace English_Listen_WinUI.Views
 
                     // 保存词库文件
                     File.WriteAllLines(wordlistPath, existingWords);
+                    // 全量上云：同名词库内容已变，按内容哈希重传云端条目
+                    _ = new Services.WordBankService().UploadSingleWordBankAsync(selectedWordlist);
 
                     MainWindow.ShowNotification($"成功追加 {wordsToAdd.Count} 个单词到词库 '{selectedWordlist}'");
                 }

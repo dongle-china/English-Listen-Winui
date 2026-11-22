@@ -122,6 +122,8 @@ namespace English_Listen_WinUI.Services
 
                 File.WriteAllLines(_libraryPath, lines);
                 _isDirty = false;
+                // 全量上云：翻译库落盘后去抖上传
+                Services.QuietCloudSync.QueueTranslationUpload();
             }
             catch (Exception ex)
             {

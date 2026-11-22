@@ -105,6 +105,49 @@ namespace English_Listen_WinUI.Services
             return uploaded;
         }
 
+        /// <summary>
+        /// 上传/更新单个本地词库：同名云端条目按 ContentHash 判断是否需要更新内容
+        /// （AutoUpload 只按文件名新增，同名文件改内容后必须走这里重传）。
+        /// </summary>
+        public async Task<bool> UploadSingleWordBankAsync(string fileName)
+        {
+            try
+            {
+                if (!WebApiService.Instance.IsLoggedIn) return false;
+
+                var localPath = Path.Combine(
+                    Windows.Storage.ApplicationData.Current.LocalFolder.Path, "wordlist", fileName);
+                if (!File.Exists(localPath)) return false;
+
+                var content = await File.ReadAllTextAsync(localPath);
+                var hash = ComputeHash(content);
+
+                var banks = await GetUserWordBanksAsync();
+                var bank = banks.FirstOrDefault(b => b.Name == fileName);
+                if (bank != null && bank.ContentHash == hash) return false; // 云端已是最新
+
+                if (bank == null)
+                {
+                    bank = new WordBank { Name = fileName };
+                    banks.Add(bank);
+                }
+                bank.FileSize = new FileInfo(localPath).Length;
+                bank.WordCount = CountWords(content);
+                bank.UploadedAt = DateTime.UtcNow;
+                bank.ContentHash = hash;
+                bank.Content = content;
+
+                await PutBanksAsync(banks);
+                Debug.WriteLine($"[WordBank] Uploaded single: {fileName}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[WordBank] UploadSingle error: " + ex.Message);
+                return false;
+            }
+        }
+
         public async Task<int> AutoDownloadWordBanksAsync(Action<int, int, string>? onProgress = null)
         {
             int downloaded = 0;

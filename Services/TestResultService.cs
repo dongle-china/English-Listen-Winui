@@ -120,6 +120,21 @@ namespace English_Listen_WinUI.Services
             }
         }
 
+        /// <summary>清空云端测试记录（本地"清空学习记录"时同步调用，防止下次登录合并时复活）。</summary>
+        public async Task ClearCloudAsync()
+        {
+            try
+            {
+                if (!WebApiService.Instance.IsLoggedIn) return;
+                await PutHistoryAsync(new List<TestResult>());
+                Debug.WriteLine("[TestResult] Cleared cloud history");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("[TestResult] ClearCloud error: " + ex.Message);
+            }
+        }
+
         private static async Task PutHistoryAsync(List<TestResult> history)
         {
             var error = await WebApiService.Instance.PutJsonAsync(Key, JsonSerializer.Serialize(history));

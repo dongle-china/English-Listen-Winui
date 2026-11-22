@@ -580,7 +580,6 @@ namespace English_Listen_WinUI.Views
             _viewModel.StudyPlan.LearnedWords = learned.ToList();
             await _viewModel.SaveStudyPlanAsync();
             item.LearnedStatus = "已学习";
-            UploadSettingsFileToCloudQuietly();
         }
 
         /// <summary>把勾选的单词批量标记为已学习并持久化。</summary>
@@ -599,21 +598,6 @@ namespace English_Listen_WinUI.Views
             await _viewModel.SaveStudyPlanAsync();
             UpdateWordsListBox();
             MainWindow.ShowNotification($"已标记 {selected.Count} 个单词为已学习");
-            UploadSettingsFileToCloudQuietly();
-        }
-
-        /// <summary>已登录时静默上传 settings.json（已学习/已背会等变更上云），失败静默由"全部同步"兜底。</summary>
-        private static async void UploadSettingsFileToCloudQuietly()
-        {
-            if (!Services.WebApiService.Instance.IsLoggedIn) return;
-            try
-            {
-                await new CloudSyncService().UploadSettingsFileAsync();
-            }
-            catch
-            {
-                // 静默：下次"全部同步"兜底
-            }
         }
 
         // ========== 开始背单词 ==========
@@ -741,7 +725,6 @@ namespace English_Listen_WinUI.Views
             {
                 _viewModel.StudyPlan.MemorizedWords = memorized.ToList();
                 await _viewModel.SaveStudyPlanAsync();
-                UploadSettingsFileToCloudQuietly();
             }
 
             _studyWords.RemoveAt(_currentIndex);

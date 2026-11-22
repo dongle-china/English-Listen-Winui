@@ -109,6 +109,8 @@ namespace English_Listen_WinUI.Views
                     {
                         await _viewModel.Settings.SaveTestHistoryAsync(currentUser ?? "", _viewModel.TestHistory);
                     }
+                    // 全量上云：云端记录一并清空，否则下次登录合并会把已清空的记录复活
+                    _ = new Services.TestResultService().ClearCloudAsync();
 
                     ApplySort();
                 }

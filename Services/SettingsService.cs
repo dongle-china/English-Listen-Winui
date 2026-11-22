@@ -137,6 +137,8 @@ namespace English_Listen_WinUI.Services
                     File.Delete(SettingsFilePath);
                 }
                 File.Move(tempPath, SettingsFilePath);
+                // 全量上云：settings.json 落盘后去抖上传（未登录静默跳过）
+                QuietCloudSync.QueueSettingsUpload();
             }
             catch (Exception ex)
             {
@@ -209,6 +211,8 @@ namespace English_Listen_WinUI.Services
                     lines.Add("");
                 }
                 await File.WriteAllLinesAsync(WordlistGroupsFilePath, lines);
+                // 全量上云：分组文件落盘后去抖上传
+                QuietCloudSync.QueueWordGroupsUpload();
             }
             catch { }
             finally

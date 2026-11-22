@@ -43,7 +43,7 @@ namespace English_Listen_WinUI.Services
             return Path.Combine(appDataPath, "config", "settings.json");
         }
 
-        private static string GetTranslationFilePath()
+        internal static string GetTranslationFilePath()
         {
             string appDataPath;
             try { appDataPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path; }
@@ -51,7 +51,7 @@ namespace English_Listen_WinUI.Services
             return Path.Combine(appDataPath, "data", "translation_library.txt");
         }
 
-        private static string GetWordGroupsFilePath()
+        internal static string GetWordGroupsFilePath()
         {
             string appDataPath;
             try { appDataPath = Windows.Storage.ApplicationData.Current.LocalFolder.Path; }

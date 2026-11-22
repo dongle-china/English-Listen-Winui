@@ -79,24 +79,28 @@ namespace English_Listen_WinUI.Services
                 var total = resp.Content.Headers.ContentLength ?? 0;
 
                 await using var src = await resp.Content.ReadAsStreamAsync(ct);
-                await using var dst = new FileStream(
-                    tmpPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
 
                 var sw = Stopwatch.StartNew();
                 long received = 0;
                 var lastReport = -1.0; // 上次上报时间（秒），首次读数据即上报
                 var buf = new byte[1 << 16];
                 int n;
-                while ((n = await src.ReadAsync(buf.AsMemory(0, buf.Length), ct)) > 0)
+                // 写入句柄用块级作用域：dst 以 FileShare.None 打开，若在校验/移动前未释放，
+                // 下方 OpenRead/Move 会报 "being used by another process"（自锁）
                 {
-                    await dst.WriteAsync(buf.AsMemory(0, n), ct);
-                    received += n;
-
-                    var elapsed = sw.Elapsed.TotalSeconds;
-                    if (elapsed - lastReport >= 0.3)
+                    await using var dst = new FileStream(
+                        tmpPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
+                    while ((n = await src.ReadAsync(buf.AsMemory(0, buf.Length), ct)) > 0)
                     {
-                        lastReport = elapsed;
-                        progress.Report(BuildProgress(received, total, elapsed));
+                        await dst.WriteAsync(buf.AsMemory(0, n), ct);
+                        received += n;
+
+                        var elapsed = sw.Elapsed.TotalSeconds;
+                        if (elapsed - lastReport >= 0.3)
+                        {
+                            lastReport = elapsed;
+                            progress.Report(BuildProgress(received, total, elapsed));
+                        }
                     }
                 }
                 progress.Report(BuildProgress(received, total, sw.Elapsed.TotalSeconds));

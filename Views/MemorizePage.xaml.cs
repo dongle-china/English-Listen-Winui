@@ -106,7 +106,6 @@ namespace English_Listen_WinUI.Views
         private SpeechSynthesizer? _synthesizer;
         private int _totalWords;
         private List<MemorizeWordItem> _wordList = new();
-        private readonly List<DictationTestPage.WordTranslationPair> _memorizedWords = new();
 
         public MemorizePage()
         {
@@ -683,14 +682,20 @@ namespace English_Listen_WinUI.Views
             ShowCompletionDialog();
         }
 
-        /// <summary>将当前单词标记为已背会，从学习列表移除并进入下一个。</summary>
+        /// <summary>将当前单词标记为已背会（持久化到学习计划），从学习列表移除并进入下一个。</summary>
         private async void MarkMemorizedButton_Click(object sender, RoutedEventArgs e)
         {
             if (_studyWords.Count == 0 || _currentIndex >= _studyWords.Count) return;
 
             var pair = _studyWords[_currentIndex];
-            if (!_memorizedWords.Any(p => p.Word == pair.Word))
-                _memorizedWords.Add(pair);
+
+            // 持久化到 StudyPlan.MemorizedWords，重启后"听写已背单词"仍可用
+            var memorized = new HashSet<string>(_viewModel.StudyPlan.MemorizedWords ?? new());
+            if (memorized.Add(pair.Word))
+            {
+                _viewModel.StudyPlan.MemorizedWords = memorized.ToList();
+                await _viewModel.SaveStudyPlanAsync();
+            }
 
             _studyWords.RemoveAt(_currentIndex);
             if (_studyWords.Count == 0)
@@ -704,20 +709,92 @@ namespace English_Listen_WinUI.Views
             await SaveCurrentState();
         }
 
-        /// <summary>用已背会的单词发起听写测试。</summary>
+        /// <summary>用已背会的单词发起听写：弹出选词列表（搜索/全选/反选），确认后进入听写。</summary>
         private async void DictateMemorizedButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_memorizedWords.Count == 0)
+            var memorized = _viewModel.StudyPlan.MemorizedWords ?? new();
+            if (memorized.Count == 0)
             {
                 MainWindow.ShowNotification("暂无已背会单词，请先点击“背会”标记单词");
                 return;
             }
 
-            var testParams = new WordsPage.DictationTestParamsWithTranslations(
-                _memorizedWords,
-                false,
-                false,
-                false);
+            // 全部持久化的已背单词，翻译从翻译库补齐，默认全选
+            var allItems = memorized
+                .Select(w => new MemorizeWordItem
+                {
+                    Word = w,
+                    Translation = _translationLibrary.GetTranslation(w) ?? "",
+                    IsSelected = true
+                })
+                .ToList();
+
+            var dialog = new ContentDialog
+            {
+                Title = $"听写已背单词（共 {allItems.Count} 个）",
+                PrimaryButtonText = "开始听写",
+                CloseButtonText = "取消",
+                XamlRoot = this.XamlRoot
+            };
+
+            var searchBox = new TextBox { PlaceholderText = "搜索单词或翻译" };
+            var selectAllButton = new Button { Content = "全选" };
+            var invertButton = new Button { Content = "反选" };
+            var listView = new ListView
+            {
+                ItemTemplate = (DataTemplate)Resources["MemorizedWordSelectTemplate"],
+                SelectionMode = ListViewSelectionMode.None,
+                MaxHeight = 380,
+                ItemsSource = allItems
+            };
+
+            // 搜索只过滤显示；全选/反选只作用于当前显示的单词
+            searchBox.TextChanged += (_, _) =>
+            {
+                var keyword = searchBox.Text.Trim();
+                listView.ItemsSource = string.IsNullOrEmpty(keyword)
+                    ? allItems
+                    : allItems.Where(i =>
+                        i.Word.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                        i.Translation.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+            };
+            selectAllButton.Click += (_, _) =>
+            {
+                foreach (var item in (List<MemorizeWordItem>)listView.ItemsSource)
+                    item.IsSelected = true;
+            };
+            invertButton.Click += (_, _) =>
+            {
+                foreach (var item in (List<MemorizeWordItem>)listView.ItemsSource)
+                    item.IsSelected = !item.IsSelected;
+            };
+
+            var buttonRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            buttonRow.Children.Add(selectAllButton);
+            buttonRow.Children.Add(invertButton);
+
+            var panel = new StackPanel { Spacing = 10 };
+            panel.Children.Add(searchBox);
+            panel.Children.Add(buttonRow);
+            panel.Children.Add(listView);
+            dialog.Content = panel;
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+            var chosen = allItems.Where(i => i.IsSelected)
+                .Select(i => new DictationTestPage.WordTranslationPair
+                {
+                    Word = i.Word,
+                    Translation = i.Translation
+                })
+                .ToList();
+            if (chosen.Count == 0)
+            {
+                MainWindow.ShowNotification("请至少勾选一个单词");
+                return;
+            }
+
+            var testParams = new WordsPage.DictationTestParamsWithTranslations(chosen, false, false, false);
             Frame?.Navigate(typeof(DictationTestPage), testParams);
         }
 

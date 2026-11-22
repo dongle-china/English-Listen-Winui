@@ -2,7 +2,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using English_Listen_WinUI.Services;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace English_Listen_WinUI.Views
@@ -91,6 +93,13 @@ namespace English_Listen_WinUI.Views
             {
                 var sync = new CloudSyncService();
 
+                // 0. 快照本地学习状态：下载覆盖后与本快照合并，本地离线学习进度不丢
+                var localPlan = App.SharedViewModel!.StudyPlan;
+                var localLearned = new HashSet<string>(localPlan.LearnedWords ?? new());
+                var localMemorized = new HashSet<string>(localPlan.MemorizedWords ?? new());
+                var localSelectedWords = new HashSet<string>(localPlan.SelectedWords ?? new());
+                var localSelectedWordLists = new List<string>(localPlan.SelectedWordLists ?? new());
+
                 // 1. 下载云端 settings.json + 翻译文件 + 分组 → 写磁盘
                 MainWindow.UpdateNotification("正在拉取云端数据...");
                 await sync.DownloadSettingsFileAsync();
@@ -100,6 +109,26 @@ namespace English_Listen_WinUI.Views
                 // 2. 从磁盘重载
                 await App.SharedViewModel!.Settings.LoadSettingsAsync();
                 App.SharedViewModel.StudyPlan = App.SharedViewModel.Settings.Settings.StudyPlan;
+
+                // 2.5 合并学习状态：单词列表取并集，词库选择本地优先；合并结果随后上传
+                var plan = App.SharedViewModel.StudyPlan;
+                localLearned.UnionWith(plan.LearnedWords ?? new());
+                plan.LearnedWords = localLearned.ToList();
+                localMemorized.UnionWith(plan.MemorizedWords ?? new());
+                plan.MemorizedWords = localMemorized.ToList();
+                localSelectedWords.UnionWith(plan.SelectedWords ?? new());
+                plan.SelectedWords = localSelectedWords.ToList();
+                if (localSelectedWordLists.Count > 0)
+                    plan.SelectedWordLists = localSelectedWordLists;
+                await App.SharedViewModel.SaveStudyPlanAsync();
+
+                // 2.6 学习历史：云端记录合并到本地，本地独有记录补传云端
+                MainWindow.UpdateNotification("正在同步学习历史...");
+                if (App.SharedViewModel.TestHistory == null)
+                    await App.SharedViewModel.LoadTestHistoryAsync();
+                var testResultService = new TestResultService();
+                await testResultService.MergeWithLocalAsync(App.SharedViewModel);
+                await testResultService.UploadLocalAsync(App.SharedViewModel);
 
                 // 3. 上传本地 settings.json + 翻译文件 + 分组 + 词库
                 MainWindow.UpdateNotification("正在上传本地数据...");
